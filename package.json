@@ -1,0 +1,36 @@
+{
+  "name": "qyx",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Secure Enterprise Communications Platform",
+  "scripts": {
+    "dev": "pnpm --filter ./apps/web dev & pnpm --filter ./apps/api-gateway dev",
+    "build": "pnpm --filter '@qyx/web' build && pnpm --filter '@qyx/api-gateway' build && pnpm --filter '@qyx/notification-worker' build && pnpm --filter '@qyx/audit-worker' build",
+    "test": "vitest run",
+    "test:packages": "vitest run packages",
+    "test:apps": "vitest run apps",
+    "test:workers": "vitest run workers",
+    "lint": "pnpm --filter './packages/*' lint && pnpm --filter './apps/*' lint && pnpm --filter './workers/*' lint",
+    "typecheck": "pnpm --filter './packages/*' typecheck && pnpm --filter './apps/*' typecheck && pnpm --filter './workers/*' typecheck",
+    "audit:metadata": "node scripts/check-audit-metadata.js",
+    "clean": "pnpm --filter './packages/*' clean && pnpm --filter './apps/*' clean && pnpm --filter './workers/*' clean"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-security": "^2.1.1",
+    "happy-dom": "^13.3.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

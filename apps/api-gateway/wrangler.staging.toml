@@ -1,0 +1,48 @@
+name = "api-gateway"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-12-01"
+
+[[d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_staging"
+database_id = "staging"
+
+[[r2_buckets]]
+binding = "ATTACHMENTS_BUCKET"
+bucket_name = "qyx-attachments-staging"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "staging-session-kv"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "staging-rate-limit-kv"
+
+[[kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "staging-challenge-kv"
+
+[[durable_objects]]
+binding = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[durable_objects]]
+binding = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[queues]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-staging"
+
+[[queues]]
+binding = "EMAIL_QUEUE"
+queue = "email-staging"
+
+[[queues]]
+binding = "AUDIT_QUEUE"
+queue = "audit-staging"
+
+[observability]
+enabled = true

@@ -1,0 +1,48 @@
+name = "api-gateway"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-12-01"
+
+[[d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_prod"
+database_id = "prod"
+
+[[r2_buckets]]
+binding = "ATTACHMENTS_BUCKET"
+bucket_name = "qyx-attachments-prod"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "prod-session-kv"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "prod-rate-limit-kv"
+
+[[kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "prod-challenge-kv"
+
+[[durable_objects]]
+binding = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[durable_objects]]
+binding = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[queues]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-prod"
+
+[[queues]]
+binding = "EMAIL_QUEUE"
+queue = "email-prod"
+
+[[queues]]
+binding = "AUDIT_QUEUE"
+queue = "audit-prod"
+
+[observability]
+enabled = true

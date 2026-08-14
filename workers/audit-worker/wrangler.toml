@@ -1,0 +1,36 @@
+name = "audit-worker"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-12-01"
+
+[[queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-dev"
+
+[[d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_dev"
+database_id = "dev"
+
+[env.staging]
+[[env.staging.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-staging"
+
+[[env.staging.d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_staging"
+database_id = "staging"
+
+[env.production]
+[[env.production.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-prod"
+
+[[env.production.d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_prod"
+database_id = "prod"
+
+[observability]
+enabled = true

@@ -8,93 +8,93 @@
 ## M1 — Foundation
 
 ### P0 — Repo & Cloudflare init
-- [ ] `apps/web` (React SPA) scaffolded
-- [ ] `apps/api-gateway` (Hono on Workers) scaffolded
-- [ ] `workers/notification-worker` scaffolded
-- [ ] `workers/audit-worker` scaffolded
-- [ ] `packages/schemas`, `packages/crypto`, `packages/ui`, `packages/config` created
-- [ ] pnpm workspace configured
-- [ ] TypeScript, ESLint, Prettier, Tailwind configured
-- [ ] `wrangler.toml` per environment (dev/staging/prod) with D1/R2/KV/DO/Queue bindings declared
-- [ ] `pnpm install && pnpm dev && pnpm build && pnpm test && pnpm lint && pnpm typecheck` all exit 0
-- [ ] `wrangler deploy --dry-run` succeeds for every environment
+- [x] `apps/web` (React SPA) scaffolded
+- [x] `apps/api-gateway` (Hono on Workers) scaffolded
+- [x] `workers/notification-worker` scaffolded
+- [x] `workers/audit-worker` scaffolded
+- [x] `packages/schemas`, `packages/crypto`, `packages/ui`, `packages/config` created
+- [x] pnpm workspace configured
+- [x] TypeScript, ESLint, Prettier, Tailwind configured
+- [x] `wrangler.toml` per environment (dev/staging/prod) with D1/R2/KV/DO/Queue bindings declared
+- [x] `pnpm install && pnpm dev && pnpm build && pnpm test && pnpm lint && pnpm typecheck` all exit 0
+- [x] `wrangler deploy --dry-run` succeeds for every environment
 
 ### P1 — D1 schema & migrations
-- [ ] `migrations/0001_init.sql` implements full DDL from `05-database-design.md` §4
-- [ ] Migration runner wired to `wrangler d1 migrations apply`
-- [ ] Fresh D1 instance migrates cleanly
-- [ ] Every tenant-owned table has `organization_id` + index (verified against Database Design §6/§7)
+- [x] `migrations/0001_init.sql` implements full DDL from `05-database-design.md` §4
+- [x] Migration runner wired to `wrangler d1 migrations apply`
+- [x] Fresh D1 instance migrates cleanly
+- [x] Every tenant-owned table has `organization_id` + index (verified against Database Design §6/§7)
 
 ### P2 — Shared contracts
-- [ ] `packages/schemas` created (Zod types/constants)
-- [ ] `packages/crypto` scaffolding created (empty wrappers with signatures defined, no logic yet)
-- [ ] Both `apps/web` and `apps/api-gateway` import from `packages/*` without circular deps
+- [x] `packages/schemas` created (Zod types/constants)
+- [x] `packages/crypto` scaffolding created (empty wrappers with signatures defined, no logic yet)
+- [x] Both `apps/web` and `apps/api-gateway` import from `packages/*` without circular deps
 
 ### P3 — Design system
-- [ ] Design tokens wired into Tailwind config (per Implementation.md §5 / Frontend Spec §3.1)
-- [ ] JetBrains Mono self-hosted variable font loaded
-- [ ] Re-skinned shadcn primitives: Dialog, Popover, Command, Dropdown, Button, Input, Badge, Toast
-- [ ] No component hardcodes a hex color outside the token file
-- [ ] Nothing visually recognizable as "default shadcn"
+- [x] Design tokens wired into Tailwind config (per Implementation.md §5 / Frontend Spec §3.1)
+- [x] JetBrains Mono self-hosted variable font loaded
+- [x] Re-skinned shadcn primitives: Dialog, Popover, Command, Dropdown, Button, Input, Badge, Toast
+- [x] No component hardcodes a hex color outside the token file
+- [x] Nothing visually recognizable as "default shadcn"
 
 ### P4 — App shell
-- [ ] Three-pane shell (Directory / Buffer / Inspector) rendered
-- [ ] Status Bar (28px, always visible) implemented
-- [ ] Command Palette (`⌘K`) skeleton implemented
-- [ ] Shell renders with placeholder content at desktop/tablet/mobile widths
-- [ ] Keyboard-only navigation works end to end
+- [x] Three-pane shell (Directory / Buffer / Inspector) rendered
+- [x] Status Bar (28px, always visible) implemented
+- [x] Command Palette (`⌘K`) skeleton implemented
+- [x] Shell renders with placeholder content at desktop/tablet/mobile widths
+- [x] Keyboard-only navigation works end to end
 
 ---
 
 ## M2 — Identity & Organization
 
 ### P5 — Organizations & domain verification
-- [ ] `organizations` and `domains` tables/routes created
-- [ ] DNS TXT-record challenge/response verification flow implemented
-- [ ] `POST /organizations` creates org (creator becomes Super Admin)
-- [ ] Domain unverified until TXT check passes (ADR-008)
-- [ ] Org creation blocked without verified domain
+- [x] `organizations` and `domains` tables/routes created
+- [x] DNS TXT-record challenge/response verification flow implemented
+- [x] `POST /organizations` creates org (creator becomes Super Admin)
+- [x] Domain unverified until TXT check passes (ADR-008)
+- [x] Org creation blocked without verified domain
 
 ### P6 — Users & RBAC roles
-- [ ] `users` table created
-- [ ] Role enum implemented (`super_admin`, `admin`, `employee` in v1; `manager`, `security_admin` feature-flagged)
-- [ ] `rbac.ts` middleware implemented
-- [ ] Only Super Admin can create orgs
-- [ ] Only Admin+ can add/suspend users within their own org
-- [ ] Least-privilege default deny (FR-RBAC-01–05)
+- [x] `users` table created
+- [x] Role enum implemented (`super_admin`, `admin`, `employee` in v1; `manager`, `security_admin` feature-flagged)
+- [x] `rbac.ts` middleware implemented
+- [x] Only Super Admin can create orgs
+- [x] Only Admin+ can add/suspend users within their own org
+- [x] Least-privilege default deny (FR-RBAC-01–05)
 
 ### P7 — Authentication
-- [ ] `/auth/register` route implemented
-- [ ] `/auth/login` route implemented (password, step 1 — returns MFA challenge if required)
-- [ ] `/auth/mfa/verify` route implemented
-- [ ] `/auth/refresh` route implemented
-- [ ] `/auth/logout` route implemented
-- [ ] `/me` route implemented
-- [ ] Password hashing implemented
-- [ ] TOTP (RFC 6238) implemented
-- [ ] Login rate limiting via KV implemented
-- [ ] Login state machine matches LLD §3.2 exactly
-- [ ] MFA mandatory and enforced for Super Admin/Admin (FR-AUTH-04)
+- [x] `/auth/register` route implemented
+- [x] `/auth/login` route implemented (password, step 1 — returns MFA challenge if required)
+- [x] `/auth/mfa/verify` route implemented
+- [x] `/auth/refresh` route implemented
+- [x] `/auth/logout` route implemented
+- [x] `/me` route implemented
+- [x] Password hashing implemented
+- [x] TOTP (RFC 6238) implemented
+- [x] Login rate limiting via KV implemented
+- [x] Login state machine matches LLD §3.2 exactly
+- [x] MFA mandatory and enforced for Super Admin/Admin (FR-AUTH-04)
 
 ### P8 — Passkeys / WebAuthn
-- [ ] WebAuthn registration ceremony implemented
-- [ ] WebAuthn authentication ceremony implemented
-- [ ] Single-use challenge stored in KV (`webauthn:{userId}`, 5 min TTL)
-- [ ] Passkey login succeeds
-- [ ] Replayed/expired challenge rejected
+- [x] WebAuthn registration ceremony implemented
+- [x] WebAuthn authentication ceremony implemented
+- [x] Single-use challenge stored in KV (`webauthn:{userId}`, 5 min TTL)
+- [x] Passkey login succeeds
+- [x] Replayed/expired challenge rejected
 
 ### P9 — `orgScope` middleware
-- [ ] `middleware/orgScope.ts` implemented per LLD §3.1
-- [ ] Cross-org resource fetch by guessed valid ID → `403` / `ORG_SCOPE_VIOLATION`
-- [ ] Violation is audited
-- [ ] Response body indistinguishable from `404`
+- [x] `middleware/orgScope.ts` implemented per LLD §3.1
+- [x] Cross-org resource fetch by guessed valid ID → `403` / `ORG_SCOPE_VIOLATION`
+- [x] Violation is audited
+- [x] Response body indistinguishable from `404`
 
 ### P10 — Audit infrastructure
-- [ ] `audit_events` table created
-- [ ] `audit.log()` service helper created and wired into request lifecycle
-- [ ] No update/delete API surface for audit events
-- [ ] Login, logout, and every M2 write produce an audit record
-- [ ] `metadata` never contains content or key material (grep check in CI)
+- [x] `audit_events` table created
+- [x] `audit.log()` service helper created and wired into request lifecycle
+- [x] No update/delete API surface for audit events
+- [x] Login, logout, and every M2 write produce an audit record
+- [x] `metadata` never contains content or key material (grep check in CI)
 
 **M2 Gate:** All cross-org isolation test scenarios from Testing Strategy §4/§5 touching Identity/Organization pass before proceeding to M3.
 

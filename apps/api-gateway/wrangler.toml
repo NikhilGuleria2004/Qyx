@@ -1,0 +1,138 @@
+name = "api-gateway"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-12-01"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ConversationDO", "ChannelDO"]
+
+[[d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_dev"
+database_id = "dev"
+
+[[r2_buckets]]
+binding = "ATTACHMENTS_BUCKET"
+bucket_name = "qyx-attachments-dev"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "dev-session-kv"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "dev-rate-limit-kv"
+
+[[kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "dev-challenge-kv"
+
+[[durable_objects.bindings]]
+name = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[durable_objects.bindings]]
+name = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[queues.producers]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-dev"
+
+[[queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "email-dev"
+
+[[queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-dev"
+
+[env.staging]
+
+[[env.staging.d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_staging"
+database_id = "staging"
+
+[[env.staging.r2_buckets]]
+binding = "ATTACHMENTS_BUCKET"
+bucket_name = "qyx-attachments-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "SESSION_KV"
+id = "staging-session-kv"
+
+[[env.staging.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "staging-rate-limit-kv"
+
+[[env.staging.kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "staging-challenge-kv"
+
+[[env.staging.durable_objects.bindings]]
+name = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[env.staging.durable_objects.bindings]]
+name = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[env.staging.queues.producers]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-staging"
+
+[[env.staging.queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "email-staging"
+
+[[env.staging.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-staging"
+
+[env.production]
+
+[[env.production.d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_prod"
+database_id = "prod"
+
+[[env.production.r2_buckets]]
+binding = "ATTACHMENTS_BUCKET"
+bucket_name = "qyx-attachments-prod"
+
+[[env.production.kv_namespaces]]
+binding = "SESSION_KV"
+id = "prod-session-kv"
+
+[[env.production.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "prod-rate-limit-kv"
+
+[[env.production.kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "prod-challenge-kv"
+
+[[env.production.durable_objects.bindings]]
+name = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[env.production.durable_objects.bindings]]
+name = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[env.production.queues.producers]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-prod"
+
+[[env.production.queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "email-prod"
+
+[[env.production.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-prod"
+
+[observability]
+enabled = true
