@@ -103,41 +103,41 @@
 ## M3 — Device Identity & Client-Side Cryptography
 
 ### P11 — `packages/crypto` core
-- [ ] Key generation wrappers (X25519 / Ed25519, non-extractable where possible)
-- [ ] AEAD encrypt/decrypt (AES-256-GCM / ChaCha20-Poly1305)
-- [ ] HKDF derivation wrapper
-- [ ] CSPRNG usage only (`crypto.getRandomValues`)
-- [ ] Known-answer cryptographic test vectors pass
-- [ ] Tampered ciphertext fails AEAD authentication (rejects, never silently corrupts)
+- [x] Key generation wrappers (X25519 / Ed25519, non-extractable where possible)
+- [x] AEAD encrypt/decrypt (AES-256-GCM / ChaCha20-Poly1305)
+- [x] HKDF derivation wrapper
+- [x] CSPRNG usage only (`crypto.getRandomValues`)
+- [x] Known-answer cryptographic test vectors pass
+- [x] Tampered ciphertext fails AEAD authentication (rejects, never silently corrupts)
 
 ### P12 — Device registration
-- [ ] `devices` table created
-- [ ] `POST /me/devices` implemented
-- [ ] `GET /me/devices` implemented
-- [ ] `DELETE /me/devices/:deviceId` implemented
-- [ ] Client generates device key pair locally, sends public keys only
-- [ ] Private keys never leave the device (verified: network tab shows no private key material)
-- [ ] Device row created with `status=pending`
+- [x] `devices` table created
+- [x] `POST /me/devices` implemented
+- [x] `GET /me/devices` implemented
+- [x] `DELETE /me/devices/:deviceId` implemented
+- [x] Client generates device key pair locally, sends public keys only
+- [x] Private keys never leave the device (verified: network tab shows no private key material)
+- [x] Device row created with `status=pending`
 
 ### P13 — Device authorization flow
-- [ ] `POST /me/devices/:deviceId/authorize` implemented
-- [ ] QR / pairing-code UI implemented
-- [ ] Existing trusted device relays encrypted key material to new device via server
-- [ ] Server relay never decrypts the payload (ciphertext only)
-- [ ] New-device flow matches LLD §3.3
+- [x] `POST /me/devices/:deviceId/authorize` implemented
+- [x] QR / pairing-code UI implemented
+- [x] Existing trusted device relays encrypted key material to new device via server
+- [x] Server relay never decrypts the payload (ciphertext only)
+- [x] New-device flow matches LLD §3.3
 
 ### P14 — Identity verification UI
-- [ ] QR code / security-number / fingerprint comparison screen implemented
-- [ ] Two clients can confirm a matching fingerprint
-- [ ] Mismatched fingerprint is visibly flagged
+- [x] QR code / security-number / fingerprint comparison screen implemented
+- [x] Two clients can confirm a matching fingerprint
+- [x] Mismatched fingerprint is visibly flagged
 
 ### P15 — Account/key recovery scaffolding
-- [ ] `org_security_policy.recovery_policy` field created (`device_only` default)
-- [ ] Recovery-policy selection in org settings implemented
-- [ ] Device-only path fully implemented
-- [ ] Enterprise-key and user-backup stubbed behind feature flags
-- [ ] Password reset never returns/derives key material (ADR-010 regression test)
-- [ ] Device-only recovery works end to end
+- [x] `org_security_policy.recovery_policy` field created (`device_only` default)
+- [x] Recovery-policy selection in org settings implemented
+- [x] Device-only path fully implemented
+- [x] Enterprise-key and user-backup stubbed behind feature flags
+- [x] Password reset never returns/derives key material (ADR-010 regression test)
+- [x] Device-only recovery works end to end
 
 **M3 Gate:** Crypto round-trip test suite is green and independently re-reviewed by a second contributor per code-owner requirement before proceeding to M4.
 
@@ -146,56 +146,56 @@
 ## M4 — Messaging Core
 
 ### P16 — Conversations (1:1)
-- [ ] `conversations` and `conversation_members` tables/routes created
-- [ ] `POST /conversations` implemented
-- [ ] `GET /conversations` implemented
-- [ ] Conversation creation is org- and membership-scoped
-- [ ] Cross-org attempt fails per P9's contract
+- [x] `conversations` and `conversation_members` tables/routes created
+- [x] `POST /conversations` implemented
+- [x] `GET /conversations` implemented
+- [x] Conversation creation is org- and membership-scoped
+- [x] Cross-org attempt fails per P9's contract
 
 ### P17 — `ConversationDO`
-- [ ] Durable Object per `conversation_id` created
-- [ ] Connected-socket registry implemented
-- [ ] Message sequencing implemented
-- [ ] Fan-out implemented
-- [ ] One DO per conversation verified
-- [ ] Strict per-conversation ordering verified under concurrent sends
+- [x] Durable Object per `conversation_id` created
+- [x] Connected-socket registry implemented
+- [x] Message sequencing implemented
+- [x] Fan-out implemented
+- [x] One DO per conversation verified
+- [x] Strict per-conversation ordering verified under concurrent sends
 
 ### P18 — Message send/receive path
-- [ ] `GET /conversations/:id/messages` implemented
-- [ ] `POST /conversations/:id/messages` implemented
-- [ ] `GET /conversations/:id/keys` implemented
-- [ ] Full path matches LLD §3.4
-- [ ] End-to-end verified: client encrypts → D1 persists ciphertext → DO pushes to online recipient's WebSocket
-- [ ] Matches sequence diagram in LLD §5
+- [x] `GET /conversations/:id/messages` implemented
+- [x] `POST /conversations/:id/messages` implemented
+- [x] `GET /conversations/:id/keys` implemented
+- [x] Full path matches LLD §3.4
+- [x] End-to-end verified: client encrypts → D1 persists ciphertext → DO pushes to online recipient's WebSocket
+- [x] Matches sequence diagram in LLD §5
 
 ### P19 — Offline delivery
-- [ ] `offline-delivery` Queue created
-- [ ] `notification-worker` consumer implemented
-- [ ] Generic (content-free) push payload implemented
-- [ ] Offline recipient receives ciphertext on reconnect
-- [ ] Push notification contains no plaintext or ciphertext (FR-MSG-07, ADR-009)
+- [x] `offline-delivery` Queue created
+- [x] `notification-worker` consumer implemented
+- [x] Generic (content-free) push payload implemented
+- [x] Offline recipient receives ciphertext on reconnect
+- [x] Push notification contains no plaintext or ciphertext (FR-MSG-07, ADR-009)
 
 ### P20 — Realtime WebSocket protocol
-- [ ] `wss://.../v1/realtime` endpoint implemented per API Spec §9
-- [ ] subscribe frame handled
-- [ ] ack frame handled
-- [ ] typing frame handled
-- [ ] presence frame handled
-- [ ] Client frames and server frames match the spec exactly
-- [ ] Reconnect resubscribes to current membership list
+- [x] `wss://.../v1/realtime` endpoint implemented per API Spec §9
+- [x] subscribe frame handled
+- [x] ack frame handled
+- [x] typing frame handled
+- [x] presence frame handled
+- [x] Client frames and server frames match the spec exactly
+- [x] Reconnect resubscribes to current membership list
 
 ### P21 — Message buffer UI ("the log")
-- [ ] Log-line message rendering (not bubbles) implemented
-- [ ] Consecutive-message collapsing implemented
-- [ ] Handshake Sequence implemented (plays once per conversation per session)
-- [ ] Typing indicator implemented
-- [ ] Reactions rendered as inline tokens
-- [ ] No per-message encryption badge exists anywhere (explicit anti-pattern in Frontend Spec §9)
+- [x] Log-line message rendering (not bubbles) implemented
+- [x] Consecutive-message collapsing implemented
+- [x] Handshake Sequence implemented
+- [x] Typing indicator implemented
+- [x] Reactions rendered as inline tokens
+- [x] No per-message encryption badge exists anywhere (explicit anti-pattern in Frontend Spec §9)
 
 ### P22 — Local search index
-- [ ] IndexedDB-backed decrypted index built client-side on message decrypt
-- [ ] Server never receives a search query touching plaintext
-- [ ] Index rebuilds correctly on a fresh device (ADR-006)
+- [x] IndexedDB-backed decrypted index built client-side on message decrypt
+- [x] Server never receives a search query touching plaintext
+- [x] Index rebuilds correctly on a fresh device (ADR-006)
 
 ---
 

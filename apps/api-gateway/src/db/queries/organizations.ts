@@ -22,3 +22,38 @@ export async function createOrganization(db: D1Database, id: string, name: strin
   
   return result;
 }
+
+export async function updateOrgSecurityPolicy(db: D1Database, orgId: string, data: Record<string, unknown>) {
+  const sets: string[] = [];
+  const values: unknown[] = [];
+
+  if (data.recovery_policy !== undefined) {
+    sets.push('recovery_policy = ?');
+    values.push(data.recovery_policy);
+  }
+  if (data.mfa_required_roles !== undefined) {
+    sets.push('mfa_required_roles = ?');
+    values.push(data.mfa_required_roles);
+  }
+  if (data.allowed_file_types !== undefined) {
+    sets.push('allowed_file_types = ?');
+    values.push(data.allowed_file_types);
+  }
+  if (data.max_file_size_mb !== undefined) {
+    sets.push('max_file_size_mb = ?');
+    values.push(data.max_file_size_mb);
+  }
+  if (data.external_sharing !== undefined) {
+    sets.push('external_sharing = ?');
+    values.push(data.external_sharing ? 1 : 0);
+  }
+  if (data.notification_preview !== undefined) {
+    sets.push('notification_preview = ?');
+    values.push(data.notification_preview ? 1 : 0);
+  }
+
+  if (sets.length === 0) return;
+
+  values.push(orgId);
+  await db.prepare(`UPDATE org_security_policy SET ${sets.join(', ')} WHERE organization_id = ?`).bind(...values).run();
+}

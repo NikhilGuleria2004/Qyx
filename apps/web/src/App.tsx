@@ -8,6 +8,26 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'directory' | 'buffer' | 'inspector'>('buffer');
   const [query, setQuery] = useState('');
+  const [devices] = useState([
+    { id: 'dev_1', device_name: 'MacBook Pro', platform: 'web', status: 'active', pairing_code: 'ABC12345' },
+    { id: 'dev_2', device_name: 'iPhone 15', platform: 'ios', status: 'pending', pairing_code: 'XYZ98765' },
+  ]);
+  const [pairingCode, setPairingCode] = useState('');
+  const [authorizePayload, setAuthorizePayload] = useState('');
+  const [identityOpen, setIdentityOpen] = useState(false);
+  const [localFingerprint, setLocalFingerprint] = useState('');
+  const [remoteFingerprint, setRemoteFingerprint] = useState('');
+  const [fingerprintMatch, setFingerprintMatch] = useState<boolean | null>(null);
+  const [messages] = useState([
+    { id: 'msg_1', sender: 'alice.k', timestamp: '09:14:22', content: 'Deploy completed, all green.', reactions: { '+1': ['bob.r'] } },
+    { id: 'msg_2', sender: 'bob.r', timestamp: '09:15:01', content: 'nice, watching metrics now', reactions: {} },
+    { id: 'msg_3', sender: 'alice.k', timestamp: '09:15:45', content: 'P99 latency looks stable at 120ms', reactions: { 'eyes': ['charlie'] } },
+  ]);
+  const [handshakePhase, setHandshakePhase] = useState<'idle' | 'running' | 'done'>('running');
+  const [handshakeLines, setHandshakeLines] = useState<string[]>([]);
+  const [typingUsers] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -22,6 +42,90 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function computeFingerprint() {
+      try {
+        const { fingerprint } = await import('@qyx/crypto');
+        const sampleKey = new Uint8Array([
+          0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+          0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+          0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+          0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
+        ]);
+        const fp = await fingerprint(sampleKey);
+        if (!cancelled) setLocalFingerprint(fp);
+      } catch {
+        if (!cancelled) setLocalFingerprint('error');
+      }
+    }
+    computeFingerprint();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (handshakePhase !== 'running') return;
+    const lines = [
+      '> establishing session…',
+      '> x25519 key agreement…',
+      '> session verified ✓',
+    ];
+    let i = 0;
+    setHandshakeLines([lines[0]]);
+    const interval = setInterval(() => {
+      i++;
+      if (i < lines.length) {
+        setHandshakeLines((prev) => [...prev, lines[i]]);
+      } else {
+        clearInterval(interval);
+        setTimeout(() => setHandshakePhase('done'), 400);
+      }
+    }, 300);
+    return () => clearInterval(interval);
+  }, [handshakePhase]);
+
+  useEffect(() => {
+    async function indexMessages() {
+      try {
+        const { getSearchIndex } = await import('./searchIndex');
+        const index = await getSearchIndex();
+        await index.clear();
+        for (const msg of messages) {
+          await index.add({
+            id: msg.id,
+            text: msg.content,
+            timestamp: Date.now(),
+            conversationId: 'conv_1',
+            senderId: msg.sender,
+          });
+        }
+      } catch {
+        // search index unavailable
+      }
+    }
+    indexMessages();
+  }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function doSearch() {
+      if (!searchQuery.trim()) {
+        if (!cancelled) setSearchResults([]);
+        return;
+      }
+      try {
+        const { getSearchIndex } = await import('./searchIndex');
+        const index = await getSearchIndex();
+        const results = await index.search(searchQuery.trim());
+        if (!cancelled) setSearchResults(results.map(r => r.id));
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      }
+    }
+    doSearch();
+    return () => { cancelled = true; };
+  }, [searchQuery, messages]);
 
   return (
     <div className="h-screen w-screen bg-void text-text-primary font-mono flex flex-col">
@@ -96,46 +200,81 @@ function App() {
 
         <div className="flex flex-1 flex-col lg:flex-row">
           <div className={`flex-1 ${mobileView === 'directory' ? 'hidden' : ''} ${mobileView === 'inspector' ? 'hidden' : ''}`}>
-            <div className="flex h-full w-full flex-col bg-void">
-              <div className="flex h-9 items-center border-b border-hairline px-3">
-                <span className="text-sm font-medium text-text-primary">#engineering</span>
-                <span className="ml-2 text-xs text-text-dim">12 members</span>
+          <div className="flex h-full w-full flex-col bg-void">
+            <div className="flex h-9 items-center border-b border-hairline px-3">
+              <span className="text-sm font-medium text-text-primary">#engineering</span>
+              <span className="ml-2 text-xs text-text-dim">12 members</span>
+              <div className="ml-auto">
+                <input
+                  type="text"
+                  placeholder="search log…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent border border-hairline px-2 py-0.5 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                />
               </div>
-              <div className="flex-1 overflow-y-auto p-3">
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
-                      <span>[09:14]</span>
-                      <span className="font-medium text-text-primary">alice.k</span>
-                    </div>
-                    <div className="mt-1 text-sm text-text-primary">
-                      Deploy completed, all green.
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
-                      <span>[09:15]</span>
-                      <span className="font-medium text-text-primary">bob.r</span>
-                    </div>
-                    <div className="mt-1 text-sm text-text-primary">
-                      nice, watching metrics now
-                    </div>
-                  </div>
-                  <div className="text-xs text-text-dim">▏ (typing…)</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {handshakePhase !== 'done' ? (
+                <div className="space-y-1 font-mono text-sm text-signal-cipher">
+                  {handshakeLines.map((line, i) => (
+                    <div key={i} style={{ animation: 'fadeIn 300ms ease' }}>{line}</div>
+                  ))}
+                  <span className="inline-block w-2 h-4 bg-signal-cipher animate-pulse" />
                 </div>
-              </div>
-              <div className="border-t border-hairline p-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-text-dim">&gt;</span>
-                  <input
-                    type="text"
-                    placeholder="type a message"
-                    className="flex-1 bg-transparent font-mono text-sm text-text-primary placeholder:text-text-dim focus:outline-none"
-                  />
+              ) : (
+                <div className="space-y-4">
+                  {(() => {
+                    const groups: { sender: string; timestamp: string; messages: typeof messages }[] = [];
+                    let current: { sender: string; timestamp: string; messages: typeof messages } | null = null;
+                    for (const msg of messages) {
+                      if (searchResults.length > 0 && !searchResults.includes(msg.id)) {
+                        continue;
+                      }
+                      if (current && current.sender === msg.sender) {
+                        current.messages.push(msg);
+                      } else {
+                        current = { sender: msg.sender, timestamp: msg.timestamp, messages: [msg] };
+                        groups.push(current);
+                      }
+                    }
+                    return groups.map((group, gi) => (
+                      <div key={gi} className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-text-secondary">
+                          <span>[{group.timestamp}]</span>
+                          <span className="font-medium text-text-primary">{group.sender}</span>
+                          {typingUsers.includes(group.sender) && <span className="text-text-dim">▏</span>}
+                        </div>
+                        {group.messages.map((msg, _mi) => (
+                          <div key={msg.id} className="text-sm text-text-primary pl-20">
+                            {msg.content}
+                            {Object.keys(msg.reactions).length > 0 && (
+                              <span className="ml-2 text-xs text-text-dim">
+                                {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                  <span key={emoji} className="mr-1">:{emoji}: {users.length}</span>
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })()}
                 </div>
+              )}
+            </div>
+            <div className="border-t border-hairline p-2">
+              <div className="flex items-center gap-2">
+                <span className="text-text-dim">&gt;</span>
+                <input
+                  type="text"
+                  placeholder="type a message"
+                  className="flex-1 bg-transparent font-mono text-sm text-text-primary placeholder:text-text-dim focus:outline-none"
+                />
               </div>
             </div>
           </div>
+        </div>
 
           <div className="hidden lg:flex lg:w-72">
             {inspectorOpen && (
@@ -178,6 +317,97 @@ function App() {
                   <div>
                     <div className="text-xs font-medium text-text-secondary mb-2">SECURITY</div>
                     <div className="text-xs text-signal-cipher">verified</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-text-secondary mb-2">DEVICES</div>
+                    <div className="text-xs text-text-dim space-y-1">
+                      {devices.map((device) => (
+                        <div key={device.id} className="flex items-center justify-between">
+                          <span className="text-text-primary">{device.device_name}</span>
+                          <span className={`text-[10px] ${device.status === 'active' ? 'text-signal-cipher' : 'text-signal-amber'}`}>{device.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <input
+                        type="text"
+                        placeholder="pairing code"
+                        value={pairingCode}
+                        onChange={(e) => setPairingCode(e.target.value)}
+                        className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                      />
+                      <input
+                        type="text"
+                        placeholder="authorization payload"
+                        value={authorizePayload}
+                        onChange={(e) => setAuthorizePayload(e.target.value)}
+                        className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                      />
+                      <button className="w-full border border-hairline px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:border-focus">
+                        Authorize device
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-text-secondary mb-2">IDENTITY VERIFICATION</div>
+                    {!identityOpen ? (
+                      <button
+                        onClick={() => setIdentityOpen(true)}
+                        className="w-full border border-hairline px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:border-focus"
+                      >
+                        Verify identity
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-xs text-text-dim">
+                          <div className="mb-1">Local fingerprint:</div>
+                          <div className="font-mono text-text-primary break-all">{localFingerprint || 'computing...'}</div>
+                          {localFingerprint && (
+                            <div className="mt-1 text-signal-cipher">
+                              Security number: {localFingerprint.slice(0, 4)} {localFingerprint.slice(4, 8)} {localFingerprint.slice(8, 12)}
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Paste remote fingerprint"
+                          value={remoteFingerprint}
+                          onChange={(e) => {
+                            setRemoteFingerprint(e.target.value);
+                            if (e.target.value.length === 64) {
+                              setFingerprintMatch(e.target.value === localFingerprint);
+                            } else {
+                              setFingerprintMatch(null);
+                            }
+                          }}
+                          className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                        />
+                        {fingerprintMatch === true && (
+                          <div className="text-xs text-signal-cipher">Fingerprints match — identity verified</div>
+                        )}
+                        {fingerprintMatch === false && (
+                          <div className="text-xs text-signal-amber">Fingerprints do not match — possible MITM</div>
+                        )}
+                        <button
+                          onClick={() => setIdentityOpen(false)}
+                          className="w-full border border-hairline px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:border-focus"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-text-secondary mb-2">RECOVERY POLICY</div>
+                    <select
+                      defaultValue="device_only"
+                      className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-focus"
+                    >
+                      <option value="device_only">Device only</option>
+                      <option value="enterprise_key" disabled>Enterprise key (coming soon)</option>
+                      <option value="user_backup" disabled>User backup (coming soon)</option>
+                    </select>
+                    <div className="text-[10px] text-text-dim mt-1">Device-only recovery is the default and recommended policy.</div>
                   </div>
                 </div>
               </div>

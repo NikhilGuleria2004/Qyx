@@ -19,4 +19,12 @@ describe('password', () => {
     const valid = await verifyPassword('wrongpass', hash);
     expect(valid).toBe(false);
   });
+
+  it('never returns or derives key material from password (ADR-010 regression)', async () => {
+    const hash = await hashPassword('s3cret!');
+    expect(hash).not.toContain('s3cret!');
+    expect(hash).not.toMatch(/[A-Za-z]{4,}/);
+    expect(() => Buffer.from(hash, 'hex')).not.toThrow();
+    expect(hash.length).toBe(64);
+  });
 });

@@ -5,7 +5,7 @@ import { rbac } from '../../middleware/rbac';
 import { validate } from '../../middleware/validate';
 import { AuditService } from '../audit/audit.service';
 import { OrganizationService } from './organization.service';
-import { CreateOrganizationSchema, AddDomainSchema, VerifyDomainSchema } from './organization.schema';
+import { CreateOrganizationSchema, AddDomainSchema, VerifyDomainSchema, UpdateOrgSettingsSchema } from './organization.schema';
 import membersRoutes from './members.routes';
 
 type OrgBindings = {
@@ -125,6 +125,35 @@ app.get('/:orgId/settings', auth, orgScope, rbac, async (c) => {
   
   const policy = await c.env.PRIMARY_DB.prepare('SELECT * FROM org_security_policy WHERE organization_id = ?').bind(orgId).first();
   
+  return c.json({ org_id: orgId, policy });
+});
+
+app.patch('/:orgId/settings', auth, orgScope, rbac, async (c) => {
+  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+  const orgId = c.req.param('orgId')!;
+  const user = c.get('user') as { user_id: string };
+  const body = await c.req.json();
+  const parsed = UpdateOrgSettingsSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json(
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      400
+    );
+  }
+
+  const service = new OrganizationService(c.env.PRIMARY_DB);
+  await service.updateSettings(orgId, parsed.data);
+
+  const audit = new AuditService(c.env.PRIMARY_DB);
+  await audit.log({
+    organization_id: orgId,
+    actor_id: user.user_id,
+    event_type: 'org_settings_updated',
+    metadata: parsed.data,
+  });
+
+  const policy = await c.env.PRIMARY_DB.prepare('SELECT * FROM org_security_policy WHERE organization_id = ?').bind(orgId).first();
   return c.json({ org_id: orgId, policy });
 });
 

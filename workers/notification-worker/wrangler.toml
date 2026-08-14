@@ -7,6 +7,11 @@ compatibility_date = "2024-12-01"
 binding = "OFFLINE_DELIVERY_QUEUE"
 queue = "offline-delivery-dev"
 
+[[queues.consumers]]
+queue = "offline-delivery-dev"
+max_batch_size = 10
+max_batch_timeout = 5
+
 [[queues.producers]]
 binding = "EMAIL_QUEUE"
 queue = "email-dev"
@@ -16,6 +21,11 @@ queue = "email-dev"
 binding = "OFFLINE_DELIVERY_QUEUE"
 queue = "offline-delivery-staging"
 
+[[env.staging.queues.consumers]]
+queue = "offline-delivery-staging"
+max_batch_size = 10
+max_batch_timeout = 5
+
 [[env.staging.queues.producers]]
 binding = "EMAIL_QUEUE"
 queue = "email-staging"
@@ -24,6 +34,11 @@ queue = "email-staging"
 [[env.production.queues.producers]]
 binding = "OFFLINE_DELIVERY_QUEUE"
 queue = "offline-delivery-prod"
+
+[[env.production.queues.consumers]]
+queue = "offline-delivery-prod"
+max_batch_size = 10
+max_batch_timeout = 5
 
 [[env.production.queues.producers]]
 binding = "EMAIL_QUEUE"

@@ -5,6 +5,10 @@ import { ChannelDO } from './durable-objects/channel';
 import organizationRoutes from './services/organization/organization.routes';
 import authRoutes from './services/auth/auth.routes';
 import webauthnRoutes from './services/identity/webauthn.routes';
+import deviceRoutes from './services/devices/device.routes';
+import conversationRoutes from './services/conversations/conversation.routes';
+import messageRoutes from './services/messages/message.routes';
+import realtimeRoutes from './realtime/realtime.routes';
 
 type Bindings = {
   PRIMARY_DB: D1Database;
@@ -39,6 +43,10 @@ app.get('/v1/schema-test', (c) => {
 app.route('/v1/organizations', organizationRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/auth/webauthn', webauthnRoutes);
+app.route('/v1/me/devices', deviceRoutes);
+app.route('/v1/conversations', conversationRoutes);
+app.route('/v1/conversations/:conversationId/messages', messageRoutes);
+app.route('/v1/realtime', realtimeRoutes);
 
 export { ConversationDO, ChannelDO };
 export default app;

@@ -1,7 +1,7 @@
 import { D1Database } from '@cloudflare/workers-types';
-import { getOrganizationById, createOrganization } from '../../db/queries/organizations';
+import { getOrganizationById, createOrganization, updateOrgSecurityPolicy } from '../../db/queries/organizations';
 import { getDomainByName, createDomain, updateDomainVerification, listDomainsByOrg } from '../../db/queries/domains';
-import { CreateOrganization, AddDomain } from './organization.schema';
+import { CreateOrganization, AddDomain, UpdateOrgSettings } from './organization.schema';
 import { Organization, Domain } from './organization.types';
 
 export class OrganizationService {
@@ -82,5 +82,13 @@ export class OrganizationService {
   async listDomains(orgId: string): Promise<Domain[]> {
     const results = await listDomainsByOrg(this.db, orgId);
     return results as unknown as Domain[];
+  }
+
+  async updateSettings(orgId: string, data: UpdateOrgSettings): Promise<void> {
+    if (data.recovery_policy && data.recovery_policy !== 'device_only') {
+      throw new Error('Recovery policy enterprise_key and user_backup are not yet implemented');
+    }
+
+    await updateOrgSecurityPolicy(this.db, orgId, data);
   }
 }
