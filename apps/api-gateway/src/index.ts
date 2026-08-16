@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { OrganizationSchema } from '@qyx/schemas';
 import { ConversationDO } from './durable-objects/conversation';
 import { ChannelDO } from './durable-objects/channel';
+import { getOrphanedFiles, deleteFile } from './db/queries/files';
 import organizationRoutes from './services/organization/organization.routes';
 import authRoutes from './services/auth/auth.routes';
 import webauthnRoutes from './services/identity/webauthn.routes';
@@ -9,6 +10,9 @@ import deviceRoutes from './services/devices/device.routes';
 import conversationRoutes from './services/conversations/conversation.routes';
 import messageRoutes from './services/messages/message.routes';
 import realtimeRoutes from './realtime/realtime.routes';
+import groupRoutes from './services/groups/group.routes';
+import channelRoutes from './services/channels/channel.routes';
+import fileRoutes from './services/files/file.routes';
 
 type Bindings = {
   PRIMARY_DB: D1Database;
@@ -47,6 +51,30 @@ app.route('/v1/me/devices', deviceRoutes);
 app.route('/v1/conversations', conversationRoutes);
 app.route('/v1/conversations/:conversationId/messages', messageRoutes);
 app.route('/v1/realtime', realtimeRoutes);
+app.route('/v1/groups', groupRoutes);
+app.route('/v1/channels', channelRoutes);
+app.route('/v1/files', fileRoutes);
 
 export { ConversationDO, ChannelDO };
-export default app;
+
+async function cleanupOrphanedFiles(env: Bindings) {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const result = await getOrphanedFiles(env.PRIMARY_DB, cutoff);
+  const orphans = result as Array<{ id: string; encrypted_storage_reference: string }>;
+  
+  for (const file of orphans) {
+    try {
+      await env.ATTACHMENTS_BUCKET.delete(file.encrypted_storage_reference);
+    } catch {
+      // R2 object may not exist — continue with DB cleanup
+    }
+    await deleteFile(env.PRIMARY_DB, file.id);
+  }
+}
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext) {
+    await cleanupOrphanedFiles(env);
+  },
+};

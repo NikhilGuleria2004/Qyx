@@ -151,3 +151,41 @@ export function securityNumber(fingerprint: string): string {
   const groups = fingerprint.match(/.{1,4}/g) || [];
   return groups.slice(0, 5).join(' ');
 }
+
+export async function encryptFile(
+  key: CryptoKey,
+  plaintext: Uint8Array,
+  chunkSize = 1024 * 1024
+): Promise<{ ciphertext: Uint8Array; nonce: Uint8Array }> {
+  const nonce = randomBytes(12);
+  const chunks: Uint8Array[] = [];
+
+  for (let i = 0; i < plaintext.length; i += chunkSize) {
+    const chunk = plaintext.slice(i, Math.min(i + chunkSize, plaintext.length));
+    const encrypted = await encrypt(key, chunk);
+    chunks.push(encrypted.ciphertext);
+  }
+
+  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return {
+    ciphertext: result,
+    nonce,
+  };
+}
+
+export async function decryptFile(
+  key: CryptoKey,
+  ciphertext: Uint8Array,
+  nonce: Uint8Array,
+  originalSize: number
+): Promise<Uint8Array> {
+  const plaintext = await decrypt(key, ciphertext, nonce);
+  return plaintext.slice(0, originalSize);
+}

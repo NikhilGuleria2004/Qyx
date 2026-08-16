@@ -22,12 +22,17 @@ function App() {
     { id: 'msg_1', sender: 'alice.k', timestamp: '09:14:22', content: 'Deploy completed, all green.', reactions: { '+1': ['bob.r'] } },
     { id: 'msg_2', sender: 'bob.r', timestamp: '09:15:01', content: 'nice, watching metrics now', reactions: {} },
     { id: 'msg_3', sender: 'alice.k', timestamp: '09:15:45', content: 'P99 latency looks stable at 120ms', reactions: { 'eyes': ['charlie'] } },
+    { id: 'msg_4', sender: 'bob.r', timestamp: '09:16:03', content: 'Here is the report', reactions: {}, attachments: [{ id: 'file_a91c', name: 'quarterly-report.pdf', size_bytes: 2048310, mime_type: 'application/pdf' }] },
   ]);
   const [handshakePhase, setHandshakePhase] = useState<'idle' | 'running' | 'done'>('running');
   const [handshakeLines, setHandshakeLines] = useState<string[]>([]);
   const [typingUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [allowedFileTypes, setAllowedFileTypes] = useState('pdf,docx,xlsx,pptx,png,jpg,mp4');
+  const [maxFileSize, setMaxFileSize] = useState(500);
+  const [externalSharing, setExternalSharing] = useState(false);
+  const [filePolicySaved, setFilePolicySaved] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -245,18 +250,26 @@ function App() {
                           <span className="font-medium text-text-primary">{group.sender}</span>
                           {typingUsers.includes(group.sender) && <span className="text-text-dim">▏</span>}
                         </div>
-                        {group.messages.map((msg, _mi) => (
-                          <div key={msg.id} className="text-sm text-text-primary pl-20">
-                            {msg.content}
-                            {Object.keys(msg.reactions).length > 0 && (
-                              <span className="ml-2 text-xs text-text-dim">
-                                {Object.entries(msg.reactions).map(([emoji, users]) => (
-                                  <span key={emoji} className="mr-1">:{emoji}: {users.length}</span>
-                                ))}
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                         {group.messages.map((msg, _mi) => (
+                           <div key={msg.id} className="text-sm text-text-primary pl-20">
+                             {msg.content}
+                             {(msg as { attachments?: Array<{ id: string; name: string; size_bytes: number; mime_type: string }> }).attachments?.map((att) => (
+                               <div key={att.id} className="mt-1 inline-flex items-center gap-2 border border-hairline bg-raised px-2 py-1 text-xs font-mono">
+                                 <span>▤</span>
+                                 <span className="text-text-primary">{att.name}</span>
+                                 <span className="text-text-dim">{(att.size_bytes / 1024 / 1024).toFixed(1)}MB</span>
+                                 <button className="text-text-secondary hover:text-text-primary">↓ download</button>
+                               </div>
+                             ))}
+                             {Object.keys(msg.reactions).length > 0 && (
+                               <span className="ml-2 text-xs text-text-dim">
+                                 {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                   <span key={emoji} className="mr-1">:{emoji}: {users.length}</span>
+                                 ))}
+                               </span>
+                             )}
+                           </div>
+                         ))}
                       </div>
                     ));
                   })()}
@@ -408,6 +421,51 @@ function App() {
                       <option value="user_backup" disabled>User backup (coming soon)</option>
                     </select>
                     <div className="text-[10px] text-text-dim mt-1">Device-only recovery is the default and recommended policy.</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-text-secondary mb-2">FILE POLICY</div>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-[10px] text-text-dim block mb-1">Allowed file types (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={allowedFileTypes}
+                          onChange={(e) => setAllowedFileTypes(e.target.value)}
+                          className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-text-dim block mb-1">Max file size (MB)</label>
+                        <input
+                          type="number"
+                          value={maxFileSize}
+                          onChange={(e) => setMaxFileSize(parseInt(e.target.value, 10) || 0)}
+                          className="w-full bg-transparent border border-hairline px-2 py-1 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="external_sharing"
+                          checked={externalSharing}
+                          onChange={(e) => setExternalSharing(e.target.checked)}
+                          className="h-3 w-3 rounded border-hairline bg-transparent"
+                        />
+                        <label htmlFor="external_sharing" className="text-xs text-text-primary">Allow external sharing</label>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setFilePolicySaved(true);
+                          setTimeout(() => setFilePolicySaved(false), 2000);
+                        }}
+                        className="w-full border border-hairline px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:border-focus"
+                      >
+                        Save file policy
+                      </button>
+                      {filePolicySaved && (
+                        <div className="text-[10px] text-signal-cipher">File policy saved</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -7,6 +7,7 @@ type Env = {
 export class ConversationDO {
   private sockets: Set<WebSocket> = new Set();
   private sequence: number = 0;
+  private removedMembers: Set<string> = new Set();
 
   constructor(private _state: DurableObjectState, private _env: Env) {}
 
@@ -14,6 +15,11 @@ export class ConversationDO {
     const url = new URL(request.url);
 
     if (url.pathname === '/ws') {
+      const userId = url.searchParams.get('user_id');
+      if (userId && this.removedMembers.has(userId)) {
+        return new Response('Forbidden', { status: 403 });
+      }
+
       const webSocketPair = new WebSocketPair();
       const [client, server] = Object.values(webSocketPair);
 
@@ -32,7 +38,7 @@ export class ConversationDO {
     }
 
     if (request.method === 'POST' || request.method === 'PUT') {
-      const body = (await request.json()) as { event: string; messageId?: string; ciphertext?: string; message_type?: string; sender_id?: string; conversation_id?: string; recipient_id?: string };
+      const body = (await request.json()) as { event: string; messageId?: string; ciphertext?: string; message_type?: string; sender_id?: string; conversation_id?: string; recipient_id?: string; removed_user_id?: string };
       
       if (body.event === 'new_message') {
         this.sequence++;
@@ -58,6 +64,10 @@ export class ConversationDO {
         } else {
           this.broadcast(JSON.stringify(frame));
         }
+      }
+
+      if (body.event === 'member_removed' && body.removed_user_id) {
+        this.removedMembers.add(body.removed_user_id);
       }
 
       return new Response(JSON.stringify({ ok: true, sequence: this.sequence }), {

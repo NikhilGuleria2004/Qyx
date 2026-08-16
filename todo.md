@@ -202,35 +202,35 @@
 ## M5 — Groups & Channels
 
 ### P23 — Groups CRUD
-- [ ] `groups` table/routes created
-- [ ] Create/delete by admin/manager implemented
-- [ ] Group has `key_epoch` starting at 1
+- [x] `groups` table/routes created
+- [x] Create/delete by admin/manager implemented
+- [x] Group has `key_epoch` starting at 1
 
 ### P24 — Membership request/approval
-- [ ] `group_members` pending→active workflow implemented
-- [ ] `POST /groups/:id/requests` implemented
-- [ ] `POST /groups/:id/requests/:reqId/approve` implemented
-- [ ] `POST /groups/:id/requests/:reqId/reject` implemented
-- [ ] Approval triggers key-provisioning relay per LLD §3.5
-- [ ] New member cannot decrypt historical messages by default
+- [x] `group_members` pending→active workflow implemented
+- [x] `POST /groups/:id/requests` implemented
+- [x] `POST /groups/:id/requests/:reqId/approve` implemented
+- [x] `POST /groups/:id/requests/:reqId/reject` implemented
+- [x] Approval triggers key-provisioning relay per LLD §3.5
+- [x] New member cannot decrypt historical messages by default
 
 ### P25 — Group key rotation on removal
-- [ ] `DELETE /groups/:id/members/:userId` implemented
-- [ ] Remaining members' clients rotate key epoch, excluding removed member's device keys
-- [ ] DO transport-level rejection implemented as defense-in-depth
-- [ ] Removed member's client cannot decrypt any message sent after removal (verified by automated test)
+- [x] `DELETE /groups/:id/members/:userId` implemented
+- [x] Remaining members' clients rotate key epoch, excluding removed member's device keys
+- [x] DO transport-level rejection implemented as defense-in-depth
+- [x] Removed member's client cannot decrypt any message sent after removal (verified by automated test)
 
 ### P26 — Broadcast channels
-- [ ] `channels` and `channel_members` tables/routes created
-- [ ] Posting restricted to authorized roles
-- [ ] `ChannelDO` (read-heavy fan-out variant) implemented
-- [ ] Employee attempting `POST /channels/:id/posts` directly via API is rejected server-side
+- [x] `channels` and `channel_members` tables/routes created
+- [x] Posting restricted to authorized roles
+- [x] `ChannelDO` (read-heavy fan-out variant) implemented
+- [x] Employee attempting `POST /channels/:id/posts` directly via API is rejected server-side
 
 ### P27 — Channel subscribe/ack
-- [ ] `POST /channels/:id/requests` implemented
-- [ ] `POST /channels/:id/posts/:postId/ack` implemented
-- [ ] Employees can read/react/acknowledge
-- [ ] Employees cannot post
+- [x] `POST /channels/:id/requests` implemented
+- [x] `POST /channels/:id/posts/:postId/ack` implemented
+- [x] Employees can read/react/acknowledge
+- [x] Employees cannot post
 
 **M5 Gate:** Full E2E journeys 3 and 4 from Testing Strategy §5 (group join → decrypt; member removal → cannot decrypt) pass before proceeding.
 
@@ -239,33 +239,33 @@
 ## M6 — Files
 
 ### P28 — Org file policy
-- [ ] `org_security_policy` fields created (`allowed_file_types`, `max_file_size_mb`, `external_sharing`)
-- [ ] Admin settings UI implemented
-- [ ] Policy editable by Admin+
-- [ ] Defaults match Database Design §4
+- [x] `org_security_policy` fields created (`allowed_file_types`, `max_file_size_mb`, `external_sharing`)
+- [x] Admin settings UI implemented
+- [x] Policy editable by Admin+
+- [x] Defaults match Database Design §4
 
 ### P29 — Upload path
-- [ ] `POST /files/upload-url` implemented
-- [ ] `POST /files/:id/complete` implemented
-- [ ] Client-side chunked encryption before upload implemented
-- [ ] R2 pre-signed PUT issued
-- [ ] R2 keys namespaced by `organization_id`
-- [ ] Policy violation (disallowed mime / oversized) rejected **before** pre-signed URL issuance (`422 FILE_POLICY_VIOLATION`)
-- [ ] Executables/scripts blocked by default
+- [x] `POST /files/upload-url` implemented
+- [x] `POST /files/:id/complete` implemented
+- [x] Client-side chunked encryption before upload implemented
+- [x] R2 pre-signed PUT issued
+- [x] R2 keys namespaced by `organization_id`
+- [x] Policy violation (disallowed mime / oversized) rejected **before** pre-signed URL issuance (`422 FILE_POLICY_VIOLATION`)
+- [x] Executables/scripts blocked by default
 
 ### P30 — Download path
-- [ ] `GET /files/:id/download-url` implemented (membership-scoped)
-- [ ] Cross-org or non-member download attempt fails
-- [ ] Downloaded blob is ciphertext, decrypted only client-side using the key received via the message
+- [x] `GET /files/:id/download-url` implemented (membership-scoped)
+- [x] Cross-org or non-member download attempt fails
+- [x] Downloaded blob is ciphertext, decrypted only client-side using the key received via the message
 
 ### P31 — Orphan cleanup
-- [ ] Scheduled Queue job created purging `pending` file rows/R2 objects after 24h
-- [ ] Orphaned upload never lingers past TTL
+- [x] Scheduled Queue job created purging `pending` file rows/R2 objects after 24h
+- [x] Orphaned upload never lingers past TTL
 
 ### P32 — File UI
-- [ ] Terminal-style file card (`▤ name  size  ↓ download`) implemented per Frontend Spec §5.2
-- [ ] No thumbnail-heavy preview tile
-- [ ] Matches the log-native aesthetic
+- [x] Terminal-style file card (`▤ name  size  ↓ download`) implemented per Frontend Spec §5.2
+- [x] No thumbnail-heavy preview tile
+- [x] Matches the log-native aesthetic
 
 ---
 

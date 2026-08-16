@@ -136,3 +136,6 @@ queue = "audit-prod"
 
 [observability]
 enabled = true
+
+[triggers]
+crons = ["0 * * * *"]
