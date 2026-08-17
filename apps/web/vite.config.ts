@@ -12,4 +12,7 @@ export default defineConfig({
       '@qyx/config': path.resolve(__dirname, '../../packages/config/src/index.ts'),
     },
   },
+  css: {
+    postcss: '../../postcss.config.js',
+  },
 });
