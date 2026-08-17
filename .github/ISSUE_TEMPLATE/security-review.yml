@@ -1,0 +1,92 @@
+name: Security Review
+about: Track a pre-production security review item
+title: "[SECURITY REVIEW] <review type>"
+labels: security, review
+assignees: ''
+
+---
+
+## Review Type
+
+- [ ] Independent Cryptographic Review
+- [ ] Key Management Review
+- [ ] Group-Rotation Review
+- [ ] File Handling Review
+- [ ] Penetration Test
+
+## Reviewer Information
+
+- **Reviewer/Org:** 
+- **Date Started:** 
+- **Date Completed:** 
+
+## Checklist
+
+<!-- Check off items as they are completed -->
+
+### Cryptographic Review
+- [ ] X25519/Ed25519 implementation review
+- [ ] AES-256-GCM/ChaCha20-Poly1305 review
+- [ ] HKDF review
+- [ ] No custom cryptography
+- [ ] Known-answer test vectors verified
+
+### Key Management Review
+- [ ] Identity/device key generation review
+- [ ] Key provisioning flow review
+- [ ] Key rotation on membership changes
+- [ ] Server never holds plaintext keys
+
+### Group-Rotation Review
+- [ ] Key distribution on member approval
+- [ ] Key rotation on member removal
+- [ ] Removed members cannot decrypt new messages
+- [ ] Forward secrecy properties
+
+### File Handling Review
+- [ ] Client-side encryption before upload
+- [ ] R2 storage key namespacing
+- [ ] Policy enforcement before URL issuance
+- [ ] Server never decrypts file content
+
+### Penetration Test
+- [ ] OWASP Top 10
+- [ ] Auth/session management
+- [ ] Authorization/org-isolation
+- [ ] API security
+- [ ] Infrastructure security
+
+## Findings
+
+### Critical
+<!-- List any critical findings -->
+- None
+
+### High
+<!-- List any high findings -->
+- None
+
+### Medium
+<!-- List any medium findings -->
+- None
+
+### Low
+<!-- List any low findings -->
+- None
+
+## Remediation Status
+
+- [ ] All critical findings remediated
+- [ ] All high findings have remediation plans
+- [ ] Medium/low findings documented
+
+## Sign-Off
+
+- **Reviewer Signature:** 
+- **Security Lead Approval:** 
+- **CTO Approval:** 
+
+## Related Issues
+
+<!-- Link to any related issues or PRs -->
+- Closes #

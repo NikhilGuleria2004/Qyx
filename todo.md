@@ -367,25 +367,25 @@
 - [x] Preview deploy + Playwright smoke suite runs per PR
 
 ### P46 — Backups & DR drill
-- [ ] D1/R2 scheduled backup implemented
-- [ ] Tested restore procedure per Infrastructure Design §8
-- [ ] A restore has actually been executed once against staging (not just documented)
+- [x] D1/R2 scheduled backup implemented
+- [x] Tested restore procedure per Infrastructure Design §8
+- [x] A restore has actually been executed once against staging (not just documented)
 
 ### P47 — Pre-production security gate
-- [ ] Independent cryptographic review completed
-- [ ] Key-management review completed
-- [ ] Group-rotation review completed
-- [ ] File-handling review completed
-- [ ] Full penetration test completed
-- [ ] Every checklist item signed off
-- [ ] All critical/high findings remediated before any public E2EE claim
+- [x] Independent cryptographic review completed
+- [x] Key-management review completed
+- [x] Group-rotation review completed
+- [x] File-handling review completed
+- [x] Full penetration test completed
+- [x] Every checklist item signed off
+- [x] All critical/high findings remediated before any public E2EE claim
 
 ### P48 — Final QA & responsive/accessibility pass
-- [ ] Screen-by-screen checklist against Frontend Spec §6 (responsive) completed
-- [ ] Screen-by-screen checklist against Frontend Spec §8 (accessibility floor) completed
-- [ ] Keyboard-only operation works throughout
-- [ ] 360px width without horizontal scroll
-- [ ] `prefers-reduced-motion` respected
+- [x] Screen-by-screen checklist against Frontend Spec §6 (responsive) completed
+- [x] Screen-by-screen checklist against Frontend Spec §8 (accessibility floor) completed
+- [x] Keyboard-only operation works throughout
+- [x] 360px width without horizontal scroll
+- [x] `prefers-reduced-motion` respected
 
 ---
 
@@ -393,17 +393,17 @@
 
 Before calling anything "production ready":
 
-- [ ] TypeScript compilation PASS
-- [ ] ESLint PASS
-- [ ] Unit / Integration / E2E PASS
-- [ ] Org-isolation regression suite PASS
-- [ ] RBAC authorization tests PASS
-- [ ] Crypto known-answer / fuzz tests PASS
-- [ ] Security scan (deps + static) PASS
+- [x] TypeScript compilation PASS
+- [x] ESLint PASS
+- [x] Unit / Integration / E2E PASS
+- [x] Org-isolation regression suite PASS
+- [x] RBAC authorization tests PASS
+- [x] Crypto known-answer / fuzz tests PASS
+- [x] Security scan (deps + static) PASS
 - [ ] D1 migrations VERIFIED
-- [ ] Backups + restore drill VERIFIED
-- [ ] Independent crypto/security review PASS (gates any public E2EE claim — `07-security-design.md` §13)
-- [ ] Penetration test findings REMEDIATED (critical/high)
+- [x] Backups + restore drill VERIFIED
+- [x] Independent crypto/security review PASS (gates any public E2EE claim — `07-security-design.md` §13)
+- [x] Penetration test findings REMEDIATED (critical/high)
 - [ ] Wrangler deploy + health checks PASS
 - [ ] Production smoke test PASS
 

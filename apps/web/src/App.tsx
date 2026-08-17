@@ -83,6 +83,14 @@ function App() {
       '> x25519 key agreement…',
       '> session verified ✓',
     ];
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    if (prefersReducedMotion) {
+      setHandshakeLines([lines[lines.length - 1]]);
+      setTimeout(() => setHandshakePhase('done'), 100);
+      return;
+    }
+    
     let i = 0;
     setHandshakeLines([lines[0]]);
     const interval = setInterval(() => {
@@ -291,7 +299,7 @@ function App() {
                   {handshakePhase !== 'done' ? (
                     <div className="space-y-1 font-mono text-sm text-signal-cipher">
                       {handshakeLines.map((line, i) => (
-                        <div key={i} style={{ animation: 'fadeIn 300ms ease' }}>{line}</div>
+                              <div key={i} className="animate-fade-in">{line}</div>
                       ))}
                       <span className="inline-block w-2 h-4 bg-signal-cipher animate-pulse" />
                     </div>

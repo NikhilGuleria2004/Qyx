@@ -138,4 +138,4 @@ queue = "audit-prod"
 enabled = true
 
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 2 * * *", "0 3 * * *"]

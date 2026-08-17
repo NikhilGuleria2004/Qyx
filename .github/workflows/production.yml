@@ -55,8 +55,41 @@ jobs:
       - name: Build Workers (dry-run)
         run: pnpm --filter @qyx/api-gateway build
 
-  deploy-production:
+  security-gate:
     needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Check security review sign-offs
+        run: |
+          if [ ! -f "security/reviews/pre-production-checklist.md" ]; then
+            echo "❌ Security review checklist not found"
+            exit 1
+          fi
+          
+          if ! grep -q "All five reviews are complete" security/reviews/pre-production-checklist.md; then
+            echo "❌ Security reviews not marked complete"
+            exit 1
+          fi
+          
+          if ! grep -q "All critical/high findings remediated" security/reviews/pre-production-checklist.md; then
+            echo "❌ Critical/high findings not remediated"
+            exit 1
+          fi
+          
+          echo "✅ Security gate passed"
+
+  deploy-production:
+    needs: [build, security-gate]
     runs-on: ubuntu-latest
     environment: production
     steps:

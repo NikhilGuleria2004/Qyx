@@ -1,0 +1,114 @@
+name: Daily Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup-d1:
+    runs-on: ubuntu-latest
+    environment: backup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Create D1 backup (staging)
+        run: pnpm --filter @qyx/api-gateway wrangler d1 backup create qyx_primary_staging --env staging --output-dir ./backups/staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+      - name: Upload D1 backup to R2
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object put qyx-backups-staging/d1-backup-$(date +%Y%m%d).sql --file ./backups/staging/*.sql
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+      - name: Create R2 backup manifest
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object list qyx-attachments-staging --output json > ./backups/staging/r2-manifest-$(date +%Y%m%d).json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+      - name: Upload R2 manifest to backup bucket
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object put qyx-backups-staging/r2-manifest-$(date +%Y%m%d).json --file ./backups/staging/r2-manifest-$(date +%Y%m%d).json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+  backup-d1-prod:
+    runs-on: ubuntu-latest
+    environment: production-backup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Create D1 backup (production)
+        run: pnpm --filter @qyx/api-gateway wrangler d1 backup create qyx_primary_prod --env production --output-dir ./backups/production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+
+      - name: Upload D1 backup to R2
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object put qyx-backups-prod/d1-backup-$(date +%Y%m%d).sql --file ./backups/production/*.sql
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+
+      - name: Create R2 backup manifest
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object list qyx-attachments-prod --output json > ./backups/production/r2-manifest-$(date +%Y%m%d).json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+
+      - name: Upload R2 manifest to backup bucket
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object put qyx-backups-prod/r2-manifest-$(date +%Y%m%d).json --file ./backups/production/r2-manifest-$(date +%Y%m%d).json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
+
+  cleanup-old-backups:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Delete backups older than 30 days (staging)
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object delete qyx-backups-staging/d1-backup-$(date -d "30 days ago" +%Y%m%d).sql || true
+          pnpm --filter @qyx/api-gateway wrangler r2 object delete qyx-backups-staging/r2-manifest-$(date -d "30 days ago" +%Y%m%d).json || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_STAGING }}
+
+      - name: Delete backups older than 30 days (production)
+        run: |
+          pnpm --filter @qyx/api-gateway wrangler r2 object delete qyx-backups-prod/d1-backup-$(date -d "30 days ago" +%Y%m%d).sql || true
+          pnpm --filter @qyx/api-gateway wrangler r2 object delete qyx-backups-prod/r2-manifest-$(date -d "30 days ago" +%Y%m%d).json || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
