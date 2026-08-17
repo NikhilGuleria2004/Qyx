@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { FileService } from './file.service';
 import { getOrphanedFiles } from '../../db/queries/files';
+import { FileService } from './file.service';
 
 describe('file service', () => {
   it('validates policy and requests upload URL', async () => {

@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
+import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { broadcast } from '../../realtime/realtime';
 import { MessageService } from './message.service';
 import { SendMessageSchema } from './message.schema';
@@ -15,11 +17,18 @@ type MessageBindings = {
 type MessageVariables = {
   permission?: string;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: MessageBindings; Variables: MessageVariables }>();
 
-app.post('/:conversationId/messages', auth, orgScope, rbac, async (c) => {
+const messageRateLimit = createRateLimit({
+  category: 'message',
+  getIdentifier: (c) => (c.get('user') as { user_id?: string } | undefined)?.user_id || 'unknown',
+  getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
+});
+
+app.post('/:conversationId/messages', auth, orgScope, rbac, messageRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const conversationId = c.req.param('conversationId')!;
   const body = await c.req.json();
@@ -27,7 +36,7 @@ app.post('/:conversationId/messages', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -73,6 +82,17 @@ app.post('/:conversationId/messages', auth, orgScope, rbac, async (c) => {
       created_at: result.created_at,
     },
   });
+
+  const metricsService = new MetricsService(c.env.PRIMARY_DB);
+  metricsService.recordEvent({
+    service: 'messaging',
+    operation: 'message_sent',
+    organization_id: user.organization_id,
+    user_id: user.user_id,
+    status: 'success',
+    latency_ms: 0,
+    metadata: { message_id: result.id, conversation_id: conversationId, message_type: result.message_type },
+  }).catch(() => {});
 
   return c.json(result, 201);
 });

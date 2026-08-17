@@ -13,6 +13,9 @@ import realtimeRoutes from './realtime/realtime.routes';
 import groupRoutes from './services/groups/group.routes';
 import channelRoutes from './services/channels/channel.routes';
 import fileRoutes from './services/files/file.routes';
+import ssoRoutes from './services/sso/sso.routes';
+import { requestId } from './middleware/requestId';
+import { metricsMiddleware } from './middleware/metrics';
 
 type Bindings = {
   PRIMARY_DB: D1Database;
@@ -28,6 +31,9 @@ type Bindings = {
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', requestId);
+app.use('*', metricsMiddleware);
 
 app.get('/v1/health', (c) => {
   return c.json({ status: 'ok', service: 'api-gateway' });
@@ -47,6 +53,7 @@ app.get('/v1/schema-test', (c) => {
 app.route('/v1/organizations', organizationRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/auth/webauthn', webauthnRoutes);
+app.route('/v1/auth/sso', ssoRoutes);
 app.route('/v1/me/devices', deviceRoutes);
 app.route('/v1/conversations', conversationRoutes);
 app.route('/v1/conversations/:conversationId/messages', messageRoutes);

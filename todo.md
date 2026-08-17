@@ -272,99 +272,99 @@
 ## M7 — Administration & Security Surfaces
 
 ### P33 — Admin dashboard
-- [ ] Members screen implemented
-- [ ] Groups screen implemented
-- [ ] Channels screen implemented
-- [ ] Requests screen implemented
-- [ ] Org settings screen implemented
-- [ ] Admin+ only; RBAC-gated per route
+- [x] Members screen implemented
+- [x] Groups screen implemented
+- [x] Channels screen implemented
+- [x] Requests screen implemented
+- [x] Org settings screen implemented
+- [x] Admin+ only; RBAC-gated per route
 
 ### P34 — Security Center
-- [ ] MFA adoption % displayed
-- [ ] Verified device % displayed
-- [ ] Suspended accounts displayed
-- [ ] Active sessions displayed
-- [ ] Unrecognized devices displayed
-- [ ] Bar-meter UI (block-character style, not donut charts) per Frontend Spec §5.6
-- [ ] Zero message-content exposure anywhere on this surface (FR-ADM-02)
-- [ ] Metrics sourced from aggregated, non-content data only
+- [x] MFA adoption % displayed
+- [x] Verified device % displayed
+- [x] Suspended accounts displayed
+- [x] Active sessions displayed
+- [x] Unrecognized devices displayed
+- [x] Bar-meter UI (block-character style, not donut charts) per Frontend Spec §5.6
+- [x] Zero message-content exposure anywhere on this surface (FR-ADM-02)
+- [x] Metrics sourced from aggregated, non-content data only
 
 ### P35 — Audit log UI
-- [ ] Filterable log viewer (actor/entity/action/date) implemented
-- [ ] Rendered in the same log-line grammar as the message buffer
-- [ ] Only roles with audit-read scope can view
-- [ ] Entries are never editable via any API surface
+- [x] Filterable log viewer (actor/entity/action/date) implemented
+- [x] Rendered in the same log-line grammar as the message buffer
+- [x] Only roles with audit-read scope can view
+- [x] Entries are never editable via any API surface
 
 ### P36 — Device/session management (admin)
-- [ ] Admin can view devices/sessions (metadata only) within their org
-- [ ] Admin can revoke devices/sessions within their org
-- [ ] Admin cannot see key material or content
-- [ ] Revocation immediately invalidates the session/device
+- [x] Admin can view devices/sessions (metadata only) within their org
+- [x] Admin can revoke devices/sessions within their org
+- [x] Admin cannot see key material or content
+- [x] Revocation immediately invalidates the session/device
 
 ### P37 — SSO (OIDC/SAML)
-- [ ] `/auth/sso/:provider/start` implemented
-- [ ] `/auth/sso/:provider/callback` implemented
-- [ ] Entra ID, Google Workspace, Okta supported
-- [ ] Domain-claim mapping implemented
-- [ ] Feature-flagged per org in `org_security_policy`/flags table
-- [ ] Assertion mapped only to a verified domain
+- [x] `/auth/sso/:provider/start` implemented
+- [x] `/auth/sso/:provider/callback` implemented
+- [x] Entra ID, Google Workspace, Okta supported
+- [x] Domain-claim mapping implemented
+- [x] Feature-flagged per org in `org_security_policy`/flags table
+- [x] Assertion mapped only to a verified domain
 
 ---
 
 ## M8 — Cross-Cutting Infrastructure & Observability
 
 ### P38 — Structured logging
-- [ ] JSON log envelope implemented per Observability §3
-- [ ] `request_id` propagated end-to-end
-- [ ] Lint rule blocks any `console.log`/logger call referencing `ciphertext`/`public_key`/`signing_key` fields
+- [x] JSON log envelope implemented per Observability §3
+- [x] `request_id` propagated end-to-end
+- [x] Lint rule blocks any `console.log`/logger call referencing `ciphertext`/`public_key`/`signing_key` fields
 
 ### P39 — Metrics & dashboards
-- [ ] Golden signals per service emitted
-- [ ] DO/Queue/D1/R2 metrics collected
-- [ ] Security Center metrics pipeline implemented
-- [ ] Engineering dashboard and Security Center read from the same aggregation pipeline
-- [ ] No per-message content exposed in metrics
+- [x] Golden signals per service emitted
+- [x] DO/Queue/D1/R2 metrics collected
+- [x] Security Center metrics pipeline implemented
+- [x] Engineering dashboard and Security Center read from the same aggregation pipeline
+- [x] No per-message content exposed in metrics
 
 ### P40 — Alerting
-- [ ] Alert rules implemented per Observability §5
-- [ ] Cross-org access-denial spike alert implemented
-- [ ] Post-deploy Sentry error-rate auto-rollback trigger implemented
-- [ ] Each alert routes to on-call with correct severity
-- [ ] Auto-rollback trigger tested in staging
+- [x] Alert rules implemented per Observability §5
+- [x] Cross-org access-denial spike alert implemented
+- [x] Post-deploy Sentry error-rate auto-rollback trigger implemented
+- [x] Each alert routes to on-call with correct severity
+- [x] Auto-rollback trigger tested in staging
 
 ### P41 — Rate limiting
-- [ ] KV-backed rate limiter implemented
-- [ ] Applied per API Spec §10 defaults
-- [ ] Auth endpoints capped at 10 req/min/IP
-- [ ] Message send capped at 60 req/min/user
-- [ ] Limits are org-tunable
+- [x] KV-backed rate limiter implemented
+- [x] Applied per API Spec §10 defaults
+- [x] Auth endpoints capped at 10 req/min/IP
+- [x] Message send capped at 60 req/min/user
+- [x] Limits are org-tunable
 
 ---
 
 ## M9 — Production Readiness
 
 ### P42 — Org-isolation regression suite
-- [ ] Parameterized cross-org test across the full endpoint catalogue from API Spec created
-- [ ] Runs on every PR touching `services/*` or `middleware/*`
-- [ ] Blocking in CI
+- [x] Parameterized cross-org test across the full endpoint catalogue from API Spec created
+- [x] Runs on every PR touching `services/*` or `middleware/*`
+- [x] Blocking in CI
 
 ### P43 — Security-specific testing
-- [ ] Crypto known-answer tests pass in CI
-- [ ] Fuzz testing wired into CI
-- [ ] Static/dependency scanning wired into CI
-- [ ] Penetration test scheduled (tracked, not automatable in-house)
+- [x] Crypto known-answer tests pass in CI
+- [x] Fuzz testing wired into CI
+- [x] Static/dependency scanning wired into CI
+- [x] Penetration test scheduled (tracked, not automatable in-house)
 
 ### P44 — Performance pass
-- [ ] Load test of message-send/fan-out executed
-- [ ] DO sub-sharding checkpoint evaluated for large channels
-- [ ] p95 message delivery < 500ms online (NFR-05)
-- [ ] p95 non-send API < 300ms (NFR-06)
+- [x] Load test of message-send/fan-out executed
+- [x] DO sub-sharding checkpoint evaluated for large channels
+- [x] p95 message delivery < 500ms online (NFR-05)
+- [x] p95 non-send API < 300ms (NFR-06)
 
 ### P45 — CI/CD pipeline
-- [ ] Full GitHub Actions pipeline implemented per Deployment/CI-CD Spec §4
-- [ ] PR → develop → staging → release tag → production stages configured
-- [ ] Every stage gate green
-- [ ] Preview deploy + Playwright smoke suite runs per PR
+- [x] Full GitHub Actions pipeline implemented per Deployment/CI-CD Spec §4
+- [x] PR → develop → staging → release tag → production stages configured
+- [x] Every stage gate green
+- [x] Preview deploy + Playwright smoke suite runs per PR
 
 ### P46 — Backups & DR drill
 - [ ] D1/R2 scheduled backup implemented

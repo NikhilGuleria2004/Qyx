@@ -14,9 +14,15 @@
     "lint": "pnpm --filter './packages/*' lint && pnpm --filter './apps/*' lint && pnpm --filter './workers/*' lint",
     "typecheck": "pnpm --filter './packages/*' typecheck && pnpm --filter './apps/*' typecheck && pnpm --filter './workers/*' typecheck",
     "audit:metadata": "node scripts/check-audit-metadata.js",
-    "clean": "pnpm --filter './packages/*' clean && pnpm --filter './apps/*' clean && pnpm --filter './workers/*' clean"
+    "clean": "pnpm --filter './packages/*' clean && pnpm --filter './apps/*' clean && pnpm --filter './workers/*' clean",
+    "check:sensitive-logging": "node scripts/check-sensitive-logging.cjs",
+    "security:audit": "pnpm audit --audit-level=high",
+    "security": "pnpm lint && pnpm security:audit",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.56.0",

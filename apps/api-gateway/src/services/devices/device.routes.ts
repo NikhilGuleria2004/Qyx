@@ -13,6 +13,7 @@ type DeviceBindings = {
 type DeviceVariables = {
   permission?: string;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: DeviceBindings; Variables: DeviceVariables }>();
@@ -24,7 +25,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -60,7 +61,7 @@ app.post('/resolve-pairing-code', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -71,14 +72,14 @@ app.post('/resolve-pairing-code', auth, orgScope, rbac, async (c) => {
 
   if (!device) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Invalid or expired pairing code', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Invalid or expired pairing code', request_id: c.get('requestId') as string } },
       404
     );
   }
 
   if (device.user_id !== user.user_id) {
     return c.json(
-      { error: { code: 'FORBIDDEN_ROLE', message: 'Device belongs to another user', request_id: crypto.randomUUID() } },
+      { error: { code: 'FORBIDDEN_ROLE', message: 'Device belongs to another user', request_id: c.get('requestId') as string } },
       403
     );
   }
@@ -93,7 +94,7 @@ app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
 
   if (!deviceId) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Device ID required', request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: 'Device ID required', request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -103,7 +104,7 @@ app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -113,7 +114,7 @@ app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
 
   if (!device) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Device not found', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Device not found', request_id: c.get('requestId') as string } },
       404
     );
   }
@@ -133,7 +134,7 @@ app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Authorization failed';
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -146,7 +147,7 @@ app.delete('/:deviceId', auth, orgScope, rbac, async (c) => {
 
   if (!deviceId) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Device ID required', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Device ID required', request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -156,7 +157,7 @@ app.delete('/:deviceId', auth, orgScope, rbac, async (c) => {
 
   if (!device) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Device not found', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Device not found', request_id: c.get('requestId') as string } },
       404
     );
   }

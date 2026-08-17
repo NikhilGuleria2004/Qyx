@@ -20,6 +20,11 @@ export const UpdateOrgSettingsSchema = z.object({
   max_file_size_mb: z.number().int().positive().optional(),
   external_sharing: z.boolean().optional(),
   notification_preview: z.boolean().optional(),
+  sso_enabled: z.boolean().optional(),
+  rate_limit_auth_per_min: z.number().int().positive().optional(),
+  rate_limit_message_per_min: z.number().int().positive().optional(),
+  rate_limit_file_upload_per_min: z.number().int().positive().optional(),
+  rate_limit_admin_write_per_min: z.number().int().positive().optional(),
 });
 
 export type CreateOrganization = z.infer<typeof CreateOrganizationSchema>;

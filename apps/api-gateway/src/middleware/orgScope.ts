@@ -1,10 +1,15 @@
 import { Context } from 'hono';
+import { createLogger } from '../utils/logger';
+import { MetricsService } from '../services/metrics/metrics.service';
 
 export async function orgScope(c: Context, next: () => Promise<void>) {
+  const requestId = c.get('requestId') as string;
+  const logger = createLogger(requestId);
   const user = c.get('user');
   if (!user) {
+    logger.warn('Unauthenticated org access attempt', { path: c.req.path, method: c.req.method });
     return c.json(
-      { error: { code: 'UNAUTHENTICATED', message: 'Not authenticated', request_id: crypto.randomUUID() } },
+      { error: { code: 'UNAUTHENTICATED', message: 'Not authenticated', request_id: requestId } },
       401
     );
   }
@@ -12,6 +17,26 @@ export async function orgScope(c: Context, next: () => Promise<void>) {
   const resourceOrgId = c.req.param('orgId') || c.req.query('orgId');
   
   if (resourceOrgId && resourceOrgId !== (user as { organization_id: string }).organization_id) {
+        logger.warn('Cross-org access denied', {
+      user_org: (user as { organization_id: string }).organization_id,
+      target_org: resourceOrgId,
+      path: c.req.path,
+      method: c.req.method,
+    });
+
+    if (c.env && c.env.PRIMARY_DB) {
+      const metricsService = new MetricsService(c.env.PRIMARY_DB);
+      metricsService.recordEvent({
+        service: 'api-gateway',
+        operation: 'cross_org_access_denied',
+        organization_id: (user as { organization_id: string }).organization_id,
+        user_id: (user as { user_id: string }).user_id,
+        status: 'error',
+        latency_ms: 0,
+        metadata: { target_org_id: resourceOrgId, route: c.req.path, method: c.req.method },
+      }).catch(() => {});
+    }
+
     const auditEvent = {
       id: `aud_${crypto.randomUUID()}`,
       organization_id: (user as { organization_id: string }).organization_id,
@@ -30,7 +55,7 @@ export async function orgScope(c: Context, next: () => Promise<void>) {
     }
 
     return c.json(
-      { error: { code: 'ORG_SCOPE_VIOLATION', message: 'Resource not found or not accessible.', request_id: crypto.randomUUID() } },
+      { error: { code: 'ORG_SCOPE_VIOLATION', message: 'Resource not found or not accessible.', request_id: requestId } },
       403
     );
   }

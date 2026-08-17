@@ -13,6 +13,7 @@ type ConversationBindings = {
 type ConversationVariables = {
   permission?: string;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: ConversationBindings; Variables: ConversationVariables }>();
@@ -24,7 +25,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }

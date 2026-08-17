@@ -51,6 +51,26 @@ export async function updateOrgSecurityPolicy(db: D1Database, orgId: string, dat
     sets.push('notification_preview = ?');
     values.push(data.notification_preview ? 1 : 0);
   }
+  if (data.sso_enabled !== undefined) {
+    sets.push('sso_enabled = ?');
+    values.push(data.sso_enabled ? 1 : 0);
+  }
+  if (data.rate_limit_auth_per_min !== undefined) {
+    sets.push('rate_limit_auth_per_min = ?');
+    values.push(data.rate_limit_auth_per_min);
+  }
+  if (data.rate_limit_message_per_min !== undefined) {
+    sets.push('rate_limit_message_per_min = ?');
+    values.push(data.rate_limit_message_per_min);
+  }
+  if (data.rate_limit_file_upload_per_min !== undefined) {
+    sets.push('rate_limit_file_upload_per_min = ?');
+    values.push(data.rate_limit_file_upload_per_min);
+  }
+  if (data.rate_limit_admin_write_per_min !== undefined) {
+    sets.push('rate_limit_admin_write_per_min = ?');
+    values.push(data.rate_limit_admin_write_per_min);
+  }
 
   if (sets.length === 0) return;
 

@@ -5,6 +5,7 @@ import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
 import { validate } from '../../middleware/validate';
+import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 
 type MembersBindings = {
@@ -15,9 +16,16 @@ type MembersVariables = {
   permission?: string;
   validatedBody?: Record<string, unknown>;
   user?: { organization_id: string; user_id: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: MembersBindings; Variables: MembersVariables }>();
+
+const adminRateLimit = createRateLimit({
+  category: 'admin',
+  getIdentifier: (c) => (c.get('user') as { user_id?: string } | undefined)?.user_id || 'unknown',
+  getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
+});
 
 app.get('/', auth, orgScope, rbac, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:read');
@@ -28,7 +36,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json(users);
 });
 
-app.post('/', auth, orgScope, rbac, validate, async (c) => {
+app.post('/', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
   const body = c.get('validatedBody') as { email: string; display_name: string; role: string; public_key?: string };
   const orgId = c.req.param('orgId') || (c.get('user') as { organization_id: string }).organization_id;
@@ -37,7 +45,7 @@ app.post('/', auth, orgScope, rbac, validate, async (c) => {
   const parsed = CreateUserSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -56,7 +64,7 @@ app.post('/', auth, orgScope, rbac, validate, async (c) => {
   return c.json(newUser, 201);
 });
 
-app.patch('/:userId/role', auth, orgScope, rbac, validate, async (c) => {
+app.patch('/:userId/role', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
   const userId = c.req.param('userId')!;
   const body = c.get('validatedBody') as { role: string };
@@ -65,7 +73,7 @@ app.patch('/:userId/role', auth, orgScope, rbac, validate, async (c) => {
   const parsed = UpdateUserRoleSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -84,7 +92,7 @@ app.patch('/:userId/role', auth, orgScope, rbac, validate, async (c) => {
   return c.json({ status: 'updated' });
 });
 
-app.patch('/:userId/status', auth, orgScope, rbac, validate, async (c) => {
+app.patch('/:userId/status', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
   const userId = c.req.param('userId')!;
   const body = c.get('validatedBody') as { status: string };
@@ -93,7 +101,7 @@ app.patch('/:userId/status', auth, orgScope, rbac, validate, async (c) => {
   const parsed = UpdateUserStatusSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }

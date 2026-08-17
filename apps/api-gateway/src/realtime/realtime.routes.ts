@@ -5,29 +5,33 @@ type RealtimeBindings = {
   SESSION_KV: KVNamespace;
 };
 
-const app = new Hono<{ Bindings: RealtimeBindings }>();
+type RealtimeVariables = {
+  requestId?: string;
+};
+
+const app = new Hono<{ Bindings: RealtimeBindings; Variables: RealtimeVariables }>();
 
 app.get('/v1/realtime', async (c) => {
   const url = new URL(c.req.url);
   const accessToken = url.searchParams.get('access_token');
 
   if (!accessToken) {
-    return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Missing access_token', request_id: crypto.randomUUID() } }, 401);
+    return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Missing access_token', request_id: c.get('requestId') as string } }, 401);
   }
 
   let session: { user_id: string; organization_id: string; role: string; device_id?: string };
   try {
     const sessionData = await c.env.SESSION_KV.get(accessToken, 'json');
     if (!sessionData) {
-      return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Invalid or expired session', request_id: crypto.randomUUID() } }, 401);
+      return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Invalid or expired session', request_id: c.get('requestId') as string } }, 401);
     }
     session = sessionData as typeof session;
   } catch {
-    return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Invalid session', request_id: crypto.randomUUID() } }, 401);
+    return c.json({ error: { code: 'UNAUTHENTICATED', message: 'Invalid session', request_id: c.get('requestId') as string } }, 401);
   }
 
   if (!c.req.header('upgrade')?.toLowerCase().includes('websocket')) {
-    return c.json({ error: { code: 'UPGRADE_REQUIRED', message: 'WebSocket upgrade required', request_id: crypto.randomUUID() } }, 426);
+    return c.json({ error: { code: 'UPGRADE_REQUIRED', message: 'WebSocket upgrade required', request_id: c.get('requestId') as string } }, 426);
   }
 
   const webSocketPair = new WebSocketPair();

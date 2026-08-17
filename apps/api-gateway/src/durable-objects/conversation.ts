@@ -1,7 +1,9 @@
 import { Queue } from '@cloudflare/workers-types';
+import { MetricsService } from '../services/metrics/metrics.service';
 
 type Env = {
   OFFLINE_DELIVERY_QUEUE: Queue;
+  PRIMARY_DB: D1Database;
 };
 
 export class ConversationDO {
@@ -34,6 +36,16 @@ export class ConversationDO {
         this.sockets.delete(server);
       });
 
+      const doName = this._state.id.toString();
+      const metricsService = new MetricsService(this._env.PRIMARY_DB);
+      metricsService.recordEvent({
+        service: 'messaging',
+        operation: 'do_connection',
+        status: 'success',
+        latency_ms: 0,
+        metadata: { do_name: doName, user_id: userId || '' },
+      }).catch(() => {});
+
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -64,6 +76,15 @@ export class ConversationDO {
         } else {
           this.broadcast(JSON.stringify(frame));
         }
+
+        const metricsService = new MetricsService(this._env.PRIMARY_DB);
+        metricsService.recordEvent({
+          service: 'messaging',
+          operation: 'do_fan_out',
+          status: 'success',
+          latency_ms: 0,
+          metadata: { do_name: this._state.id.toString(), message_id: body.messageId || '', recipient_count: this.sockets.size },
+        }).catch(() => {});
       }
 
       if (body.event === 'member_removed' && body.removed_user_id) {

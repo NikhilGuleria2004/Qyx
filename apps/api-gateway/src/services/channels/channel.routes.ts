@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
+import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { ChannelService } from './channel.service';
 import { CreateChannelSchema, AckPostSchema } from './channel.schema';
@@ -13,11 +14,18 @@ type ChannelBindings = {
 type ChannelVariables = {
   permission?: string;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: ChannelBindings; Variables: ChannelVariables }>();
 
-app.post('/', auth, orgScope, rbac, async (c) => {
+const adminRateLimit = createRateLimit({
+  category: 'admin',
+  getIdentifier: (c) => (c.get('user') as { user_id?: string } | undefined)?.user_id || 'unknown',
+  getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
+});
+
+app.post('/', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
@@ -25,7 +33,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -54,14 +62,14 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json({ channels });
 });
 
-app.delete('/:channelId', auth, orgScope, rbac, async (c) => {
+app.delete('/:channelId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId');
 
   if (!channelId) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Channel ID required', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Channel ID required', request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -71,7 +79,7 @@ app.delete('/:channelId', auth, orgScope, rbac, async (c) => {
 
   if (!channel) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'Channel not found', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'Channel not found', request_id: c.get('requestId') as string } },
       404
     );
   }
@@ -89,7 +97,7 @@ app.delete('/:channelId', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'deleted' });
 });
 
-app.post('/:channelId/requests', auth, orgScope, rbac, async (c) => {
+app.post('/:channelId/requests', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
@@ -118,7 +126,7 @@ app.get('/:channelId/requests', auth, orgScope, rbac, async (c) => {
   return c.json({ requests });
 });
 
-app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, async (c) => {
+app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
@@ -128,7 +136,7 @@ app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, async (c) 
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -147,7 +155,7 @@ app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, async (c) 
   return c.json({ status: 'approved', can_post: result.can_post });
 });
 
-app.post('/:channelId/requests/:reqId/reject', auth, orgScope, rbac, async (c) => {
+app.post('/:channelId/requests/:reqId/reject', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
@@ -177,7 +185,7 @@ app.post('/:channelId/posts/:postId/ack', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -188,7 +196,7 @@ app.post('/:channelId/posts/:postId/ack', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'acknowledged' });
 });
 
-app.post('/:channelId/posts', auth, orgScope, rbac, async (c) => {
+app.post('/:channelId/posts', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
@@ -199,7 +207,7 @@ app.post('/:channelId/posts', auth, orgScope, rbac, async (c) => {
 
   if (!isMember) {
     return c.json(
-      { error: { code: 'FORBIDDEN', message: 'Must be an active channel member to post', request_id: crypto.randomUUID() } },
+      { error: { code: 'FORBIDDEN', message: 'Must be an active channel member to post', request_id: c.get('requestId') as string } },
       403
     );
   }
@@ -207,7 +215,7 @@ app.post('/:channelId/posts', auth, orgScope, rbac, async (c) => {
   const memberData = member.find(m => m.user_id === user.user_id);
   if (!memberData?.can_post) {
     return c.json(
-      { error: { code: 'FORBIDDEN_ROLE', message: 'Insufficient channel permissions to post', request_id: crypto.randomUUID() } },
+      { error: { code: 'FORBIDDEN_ROLE', message: 'Insufficient channel permissions to post', request_id: c.get('requestId') as string } },
       403
     );
   }

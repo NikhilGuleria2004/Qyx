@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, Users, Hash, MessageSquare, Settings, Shield, X } from 'lucide-react';
+import { ChevronRight, Users, Hash, MessageSquare, Settings, Shield, X, FileText, Monitor, KeyRound, Bell } from 'lucide-react';
 import { Badge, Command, CommandInput, CommandList, CommandItem } from '@qyx/ui';
+import { MembersScreen, GroupsScreen, ChannelsScreen, RequestsScreen, OrgSettingsScreen, SecurityCenterScreen, AuditLogScreen, DevicesScreen, SSOScreen, AlertsScreen } from './features/admin';
+
+type AdminView = 'members' | 'groups' | 'channels' | 'requests' | 'settings' | 'security' | 'audit' | 'devices' | 'sso' | 'alerts' | null;
 
 function App() {
   const [directoryOpen, setDirectoryOpen] = useState(true);
@@ -8,6 +11,10 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'directory' | 'buffer' | 'inspector'>('buffer');
   const [query, setQuery] = useState('');
+  const [adminView, setAdminView] = useState<AdminView>(null);
+  const [demoToken] = useState('demo-token');
+  const [demoOrgId] = useState('org_demo');
+  const [userRole] = useState<'super_admin' | 'admin' | 'employee'>('admin');
   const [devices] = useState([
     { id: 'dev_1', device_name: 'MacBook Pro', platform: 'web', status: 'active', pairing_code: 'ABC12345' },
     { id: 'dev_2', device_name: 'iPhone 15', platform: 'ios', status: 'pending', pairing_code: 'XYZ98765' },
@@ -189,103 +196,166 @@ function App() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-          {!directoryOpen && (
-            <button
-              onClick={() => setDirectoryOpen(true)}
-              className="flex h-full w-8 flex-col items-center justify-center border-r border-hairline bg-surface text-text-dim hover:text-text-primary"
-              aria-label="Open directory pane"
-            >
-              <Settings size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-1 flex-col lg:flex-row">
-          <div className={`flex-1 ${mobileView === 'directory' ? 'hidden' : ''} ${mobileView === 'inspector' ? 'hidden' : ''}`}>
-          <div className="flex h-full w-full flex-col bg-void">
-            <div className="flex h-9 items-center border-b border-hairline px-3">
-              <span className="text-sm font-medium text-text-primary">#engineering</span>
-              <span className="ml-2 text-xs text-text-dim">12 members</span>
-              <div className="ml-auto">
-                <input
-                  type="text"
-                  placeholder="search log…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border border-hairline px-2 py-0.5 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
-                />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              {handshakePhase !== 'done' ? (
-                <div className="space-y-1 font-mono text-sm text-signal-cipher">
-                  {handshakeLines.map((line, i) => (
-                    <div key={i} style={{ animation: 'fadeIn 300ms ease' }}>{line}</div>
-                  ))}
-                  <span className="inline-block w-2 h-4 bg-signal-cipher animate-pulse" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {(() => {
-                    const groups: { sender: string; timestamp: string; messages: typeof messages }[] = [];
-                    let current: { sender: string; timestamp: string; messages: typeof messages } | null = null;
-                    for (const msg of messages) {
-                      if (searchResults.length > 0 && !searchResults.includes(msg.id)) {
-                        continue;
-                      }
-                      if (current && current.sender === msg.sender) {
-                        current.messages.push(msg);
-                      } else {
-                        current = { sender: msg.sender, timestamp: msg.timestamp, messages: [msg] };
-                        groups.push(current);
-                      }
-                    }
-                    return groups.map((group, gi) => (
-                      <div key={gi} className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-text-secondary">
-                          <span>[{group.timestamp}]</span>
-                          <span className="font-medium text-text-primary">{group.sender}</span>
-                          {typingUsers.includes(group.sender) && <span className="text-text-dim">▏</span>}
-                        </div>
-                         {group.messages.map((msg, _mi) => (
-                           <div key={msg.id} className="text-sm text-text-primary pl-20">
-                             {msg.content}
-                             {(msg as { attachments?: Array<{ id: string; name: string; size_bytes: number; mime_type: string }> }).attachments?.map((att) => (
-                               <div key={att.id} className="mt-1 inline-flex items-center gap-2 border border-hairline bg-raised px-2 py-1 text-xs font-mono">
-                                 <span>▤</span>
-                                 <span className="text-text-primary">{att.name}</span>
-                                 <span className="text-text-dim">{(att.size_bytes / 1024 / 1024).toFixed(1)}MB</span>
-                                 <button className="text-text-secondary hover:text-text-primary">↓ download</button>
-                               </div>
-                             ))}
-                             {Object.keys(msg.reactions).length > 0 && (
-                               <span className="ml-2 text-xs text-text-dim">
-                                 {Object.entries(msg.reactions).map(([emoji, users]) => (
-                                   <span key={emoji} className="mr-1">:{emoji}: {users.length}</span>
-                                 ))}
-                               </span>
-                             )}
-                           </div>
-                         ))}
+                {(userRole === 'super_admin' || userRole === 'admin') && (
+                  <div className="mb-2">
+                    <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
+                      <Shield size={12} className="mr-1" />
+                      <span>Admin</span>
+                    </div>
+                    <div className="ml-4 mt-1 space-y-1">
+                      <button onClick={() => setAdminView('members')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'members' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Users size={12} className="mr-2" />
+                        <span>Members</span>
+                      </button>
+                      <button onClick={() => setAdminView('groups')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'groups' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Users size={12} className="mr-2" />
+                        <span>Groups</span>
+                      </button>
+                      <button onClick={() => setAdminView('channels')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'channels' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Hash size={12} className="mr-2" />
+                        <span>Channels</span>
+                      </button>
+                      <button onClick={() => setAdminView('requests')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'requests' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Shield size={12} className="mr-2" />
+                        <span>Requests</span>
+                      </button>
+                       <button onClick={() => setAdminView('settings')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'settings' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                         <Settings size={12} className="mr-2" />
+                         <span>Org Settings</span>
+                       </button>
+                       <button onClick={() => setAdminView('security')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'security' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                         <Shield size={12} className="mr-2" />
+                         <span>Security Center</span>
+                       </button>
+                        <button onClick={() => setAdminView('audit')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'audit' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                          <FileText size={12} className="mr-2" />
+                          <span>Audit Log</span>
+                        </button>
+                         <button onClick={() => setAdminView('devices')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'devices' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                           <Monitor size={12} className="mr-2" />
+                           <span>Devices</span>
+                         </button>
+                         <button onClick={() => setAdminView('sso')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'sso' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                           <KeyRound size={12} className="mr-2" />
+                           <span>SSO</span>
+                         </button>
                       </div>
-                    ));
-                  })()}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="border-t border-hairline p-2">
-              <div className="flex items-center gap-2">
-                <span className="text-text-dim">&gt;</span>
-                <input
-                  type="text"
-                  placeholder="type a message"
-                  className="flex-1 bg-transparent font-mono text-sm text-text-primary placeholder:text-text-dim focus:outline-none"
-                />
               </div>
-            </div>
+            )}
+            {!directoryOpen && (
+
+             <button
+               onClick={() => setDirectoryOpen(true)}
+               className="flex h-full w-8 flex-col items-center justify-center border-r border-hairline bg-surface text-text-dim hover:text-text-primary"
+               aria-label="Open directory pane"
+             >
+               <Settings size={14} />
+             </button>
+           )}
+         </div>
+
+         <div className="flex flex-1 flex-col lg:flex-row">
+           <div className={`flex-1 ${mobileView === 'directory' ? 'hidden' : ''} ${mobileView === 'inspector' ? 'hidden' : ''}`}>
+           <div className="flex h-full w-full flex-col bg-void">
+             <div className="flex h-9 items-center border-b border-hairline px-3">
+               <span className="text-sm font-medium text-text-primary">#engineering</span>
+               <span className="ml-2 text-xs text-text-dim">12 members</span>
+               <div className="ml-auto">
+                 <input
+                   type="text"
+                   placeholder="search log…"
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="bg-transparent border border-hairline px-2 py-0.5 text-xs text-text-primary placeholder:text-text-dim focus:outline-none focus:border-focus"
+                 />
+               </div>
+             </div>
+             {adminView === 'members' && <MembersScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+             {adminView === 'groups' && <GroupsScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+             {adminView === 'channels' && <ChannelsScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+             {adminView === 'requests' && <RequestsScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+              {adminView === 'settings' && <OrgSettingsScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+              {adminView === 'security' && <SecurityCenterScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+              {adminView === 'audit' && <AuditLogScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+               {adminView === 'devices' && <DevicesScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+               {adminView === 'sso' && <SSOScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+               {adminView === 'alerts' && <AlertsScreen orgId={demoOrgId} token={demoToken} onClose={() => setAdminView(null)} />}
+               {adminView === null && (
+
+
+              <>
+                <div className="flex-1 overflow-y-auto p-3">
+                  {handshakePhase !== 'done' ? (
+                    <div className="space-y-1 font-mono text-sm text-signal-cipher">
+                      {handshakeLines.map((line, i) => (
+                        <div key={i} style={{ animation: 'fadeIn 300ms ease' }}>{line}</div>
+                      ))}
+                      <span className="inline-block w-2 h-4 bg-signal-cipher animate-pulse" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(() => {
+                        const groups: { sender: string; timestamp: string; messages: typeof messages }[] = [];
+                        let current: { sender: string; timestamp: string; messages: typeof messages } | null = null;
+                        for (const msg of messages) {
+                          if (searchResults.length > 0 && !searchResults.includes(msg.id)) {
+                            continue;
+                          }
+                          if (current && current.sender === msg.sender) {
+                            current.messages.push(msg);
+                          } else {
+                            current = { sender: msg.sender, timestamp: msg.timestamp, messages: [msg] };
+                            groups.push(current);
+                          }
+                        }
+                        return groups.map((group, gi) => (
+                          <div key={gi} className="space-y-1">
+                            <div className="flex items-center gap-2 text-xs text-text-secondary">
+                              <span>[{group.timestamp}]</span>
+                              <span className="font-medium text-text-primary">{group.sender}</span>
+                              {typingUsers.includes(group.sender) && <span className="text-text-dim">▏</span>}
+                            </div>
+                             {group.messages.map((msg, _mi) => (
+                                <div key={msg.id} className="text-sm text-text-primary pl-20">
+                                  {msg.content}
+                                  {(msg as { attachments?: Array<{ id: string; name: string; size_bytes: number; mime_type: string }> }).attachments?.map((att) => (
+                                    <div key={att.id} className="mt-1 inline-flex items-center gap-2 border border-hairline bg-raised px-2 py-1 text-xs font-mono">
+                                      <span>▤</span>
+                                      <span className="text-text-primary">{att.name}</span>
+                                      <span className="text-text-dim">{(att.size_bytes / 1024 / 1024).toFixed(1)}MB</span>
+                                      <button className="text-text-secondary hover:text-text-primary">↓ download</button>
+                                    </div>
+                                  ))}
+                                  {Object.keys(msg.reactions).length > 0 && (
+                                    <span className="ml-2 text-xs text-text-dim">
+                                      {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                        <span key={emoji} className="mr-1">:{emoji}: {users.length}</span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                           </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+                <div className="border-t border-hairline p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-text-dim">&gt;</span>
+                    <input
+                      type="text"
+                      placeholder="type a message"
+                      className="flex-1 bg-transparent font-mono text-sm text-text-primary placeholder:text-text-dim focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -532,10 +602,62 @@ function App() {
                     </div>
                   </div>
                 </div>
+                {(userRole === 'super_admin' || userRole === 'admin') && (
+                  <div className="mb-2">
+                    <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
+                      <Shield size={12} className="mr-1" />
+                      <span>Admin</span>
+                    </div>
+                    <div className="ml-4 mt-1 space-y-1">
+                      <button onClick={() => setAdminView('members')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'members' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Users size={12} className="mr-2" />
+                        <span>Members</span>
+                      </button>
+                      <button onClick={() => setAdminView('groups')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'groups' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Users size={12} className="mr-2" />
+                        <span>Groups</span>
+                      </button>
+                      <button onClick={() => setAdminView('channels')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'channels' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Hash size={12} className="mr-2" />
+                        <span>Channels</span>
+                      </button>
+                      <button onClick={() => setAdminView('requests')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'requests' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                        <Shield size={12} className="mr-2" />
+                        <span>Requests</span>
+                      </button>
+                       <button onClick={() => setAdminView('settings')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'settings' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                         <Settings size={12} className="mr-2" />
+                         <span>Org Settings</span>
+                       </button>
+                       <button onClick={() => setAdminView('security')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'security' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                         <Shield size={12} className="mr-2" />
+                         <span>Security Center</span>
+                       </button>
+                        <button onClick={() => setAdminView('audit')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'audit' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                          <FileText size={12} className="mr-2" />
+                          <span>Audit Log</span>
+                        </button>
+                         <button onClick={() => setAdminView('devices')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'devices' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                           <Monitor size={12} className="mr-2" />
+                           <span>Devices</span>
+                         </button>
+                         <button onClick={() => setAdminView('sso')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'sso' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                           <KeyRound size={12} className="mr-2" />
+                           <span>SSO</span>
+                         </button>
+                         <button onClick={() => setAdminView('alerts')} className={`flex items-center w-full px-2 py-1 text-xs ${adminView === 'alerts' ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
+                           <Bell size={12} className="mr-2" />
+                           <span>Alerts</span>
+                         </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-          {mobileView === 'inspector' && (
+            )}
+            {mobileView === 'inspector' && (
+
+
             <div className="flex h-full w-full flex-col">
               <div className="flex h-9 items-center border-b border-hairline px-3">
                 <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">Inspector</span>

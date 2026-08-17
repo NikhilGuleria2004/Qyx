@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { auth, optionalAuth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
+import { createRateLimit, getClientIp } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { AuthService } from './auth.service';
 import { RegisterSchema, LoginSchema, MfaVerifySchema, RefreshSchema } from './auth.schema';
@@ -14,9 +15,17 @@ type AuthVariables = {
   permission?: string;
   validatedBody?: Record<string, unknown>;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: AuthBindings; Variables: AuthVariables }>();
+
+const authRateLimit = createRateLimit({
+  category: 'auth',
+  getIdentifier: (c) => getClientIp(c),
+});
+
+app.use('*', authRateLimit);
 
 app.post('/register', optionalAuth, async (c) => {
   const body = await c.req.json();
@@ -24,7 +33,7 @@ app.post('/register', optionalAuth, async (c) => {
   
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -49,7 +58,7 @@ app.post('/login', optionalAuth, async (c) => {
   
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -96,7 +105,7 @@ app.post('/mfa/verify', async (c) => {
   
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -104,7 +113,7 @@ app.post('/mfa/verify', async (c) => {
   const userId = c.req.header('X-Qyx-User-Id');
   if (!userId) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Missing user ID', request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: 'Missing user ID', request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -140,7 +149,7 @@ app.post('/refresh', async (c) => {
   
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -150,7 +159,7 @@ app.post('/refresh', async (c) => {
   
   if (!tokens) {
     return c.json(
-      { error: { code: 'UNAUTHENTICATED', message: 'Invalid or expired refresh token', request_id: crypto.randomUUID() } },
+      { error: { code: 'UNAUTHENTICATED', message: 'Invalid or expired refresh token', request_id: c.get('requestId') as string } },
       401
     );
   }
@@ -191,7 +200,7 @@ app.get('/me', auth, orgScope, rbac, async (c) => {
   
   if (!me) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'User not found', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'User not found', request_id: c.get('requestId') as string } },
       404
     );
   }

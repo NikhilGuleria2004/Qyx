@@ -30,6 +30,11 @@ export class DeviceService {
     return devices as unknown as Device[];
   }
 
+  async listDevicesByOrg(organizationId: string): Promise<Device[]> {
+    const result = await this.db.prepare('SELECT * FROM devices WHERE organization_id = ? ORDER BY created_at DESC').bind(organizationId).all();
+    return result.results as unknown as Device[];
+  }
+
   async getDeviceByPairingCode(pairingCode: string): Promise<Device | null> {
     const result = await this.db.prepare('SELECT * FROM devices WHERE pairing_code = ? AND status = ?').bind(pairingCode, 'pending').first();
     return result as unknown as Device | null;
@@ -87,6 +92,21 @@ export class DeviceService {
 
     if (deviceData.user_id !== userId) {
       throw new Error('Forbidden');
+    }
+
+    await updateDeviceStatus(this.db, deviceId, 'revoked');
+  }
+
+  async adminRevokeDevice(organizationId: string, deviceId: string): Promise<void> {
+    const device = await getDeviceById(this.db, deviceId);
+    const deviceData = device as unknown as Device | undefined;
+
+    if (!deviceData) {
+      throw new Error('Device not found');
+    }
+
+    if (deviceData.organization_id !== organizationId) {
+      throw new Error('Forbidden: device belongs to another organization');
     }
 
     await updateDeviceStatus(this.db, deviceId, 'revoked');

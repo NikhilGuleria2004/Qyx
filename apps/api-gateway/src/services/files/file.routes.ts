@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
+import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { FileService } from './file.service';
 import { UploadUrlSchema, CompleteUploadSchema } from './file.schema';
 
@@ -14,11 +16,18 @@ type FileBindings = {
 type FileVariables = {
   permission?: string;
   user?: { user_id: string; organization_id: string; role: string };
+  requestId?: string;
 };
 
 const app = new Hono<{ Bindings: FileBindings; Variables: FileVariables }>();
 
-app.post('/upload-url', auth, orgScope, rbac, async (c) => {
+const fileRateLimit = createRateLimit({
+  category: 'file',
+  getIdentifier: (c) => (c.get('user') as { user_id?: string } | undefined)?.user_id || 'unknown',
+  getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
+});
+
+app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'files:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
@@ -26,7 +35,7 @@ app.post('/upload-url', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -44,6 +53,17 @@ app.post('/upload-url', auth, orgScope, rbac, async (c) => {
       metadata: { file_id: result.fileId, mime_type: parsed.data.mime_type, size_bytes: parsed.data.size_bytes },
     });
 
+    const metricsService = new MetricsService(c.env.PRIMARY_DB);
+    metricsService.recordEvent({
+      service: 'file',
+      operation: 'r2_upload',
+      organization_id: user.organization_id,
+      user_id: user.user_id,
+      status: 'success',
+      latency_ms: 0,
+      metadata: { file_id: result.fileId, mime_type: parsed.data.mime_type },
+    }).catch(() => {});
+
     return c.json({
       file_id: result.fileId,
       upload_url: result.uploadUrl,
@@ -53,12 +73,12 @@ app.post('/upload-url', auth, orgScope, rbac, async (c) => {
     const message = err instanceof Error ? err.message : 'Failed to request upload URL';
     if (message.includes('FILE_POLICY_VIOLATION')) {
       return c.json(
-        { error: { code: 'FILE_POLICY_VIOLATION', message: message.replace('FILE_POLICY_VIOLATION: ', ''), request_id: crypto.randomUUID() } },
+        { error: { code: 'FILE_POLICY_VIOLATION', message: message.replace('FILE_POLICY_VIOLATION: ', ''), request_id: c.get('requestId') as string } },
         422
       );
     }
     return c.json(
-      { error: { code: 'INTERNAL_ERROR', message, request_id: crypto.randomUUID() } },
+      { error: { code: 'INTERNAL_ERROR', message, request_id: c.get('requestId') as string } },
       500
     );
   }
@@ -72,7 +92,7 @@ app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
 
   if (!parsed.success) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
     );
   }
@@ -94,7 +114,7 @@ app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to complete upload';
     return c.json(
-      { error: { code: 'NOT_FOUND', message, request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message, request_id: c.get('requestId') as string } },
       404
     );
   }
@@ -110,12 +130,23 @@ app.get('/:fileId/download-url', auth, orgScope, rbac, async (c) => {
 
   if (!file) {
     return c.json(
-      { error: { code: 'NOT_FOUND', message: 'File not found or access denied', request_id: crypto.randomUUID() } },
+      { error: { code: 'NOT_FOUND', message: 'File not found or access denied', request_id: c.get('requestId') as string } },
       404
     );
   }
 
   const downloadUrl = `https://r2.example.com/${file.encrypted_storage_reference}?sig=${crypto.randomUUID().replace(/-/g, '')}`;
+
+  const metricsService = new MetricsService(c.env.PRIMARY_DB);
+  metricsService.recordEvent({
+    service: 'file',
+    operation: 'r2_download',
+    organization_id: user.organization_id,
+    user_id: user.user_id,
+    status: 'success',
+    latency_ms: 0,
+    metadata: { file_id: file.id, mime_type: file.mime_type },
+  }).catch(() => {});
 
   return c.json({
     file_id: file.id,
