@@ -99,6 +99,21 @@ app.post('/:orgId/domains', auth, orgScope, rbac, adminRateLimit, validate, asyn
   return c.json(domain, 201);
 });
 
+app.get('/:orgId/domains', auth, orgScope, rbac, async (c) => {
+  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+  const orgId = c.req.param('orgId')!;
+  const service = new OrganizationService(c.env.PRIMARY_DB);
+  const domains = await service.listDomains(orgId);
+  const safeDomains = domains.map((d) => ({
+    id: d.id,
+    domain: d.domain,
+    verified: !!d.verified,
+    verification_token: d.verification_token,
+    created_at: d.created_at,
+  }));
+  return c.json({ domains: safeDomains });
+});
+
 app.post('/:orgId/domains/:domainId/verify', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
   const body = (c as unknown as { get: (key: string) => unknown }).get('validatedBody') as { txt_record: string };

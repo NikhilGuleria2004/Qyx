@@ -59,6 +59,9 @@ export function createRateLimit(config: RateLimitConfig) {
     }
 
     if (count >= limit) {
+      c.header('X-RateLimit-Limit', String(limit));
+      c.header('X-RateLimit-Remaining', '0');
+      c.header('X-RateLimit-Reset', String(windowStart));
       return c.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: `Rate limit exceeded: ${limit} requests per minute`, request_id: c.get('requestId') as string } },
         429
@@ -66,6 +69,9 @@ export function createRateLimit(config: RateLimitConfig) {
     }
 
     count++;
+    c.header('X-RateLimit-Limit', String(limit));
+    c.header('X-RateLimit-Remaining', String(Math.max(0, limit - count)));
+    c.header('X-RateLimit-Reset', String(windowStart));
     try {
       const ttl = windowMinutes * 60 + 30;
       await c.env.RATE_LIMIT_KV.put(key, String(count), { expirationTtl: ttl });

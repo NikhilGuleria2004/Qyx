@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { app } from './index.ts';
+import { app, type Bindings } from './index.ts';
 
 describe('notification-worker', () => {
   it('send endpoint returns queued', async () => {
@@ -29,6 +29,15 @@ describe('notification-worker', () => {
     };
 
     const queueHandler = (await import('./index.ts')).default.queue;
-    await expect(queueHandler(batch, {} as { OFFLINE_DELIVERY_QUEUE: { send: (message: unknown) => void }; EMAIL_QUEUE: { send: (message: unknown) => void } }, { waitUntil: () => {} } as unknown as ExecutionContext)).resolves.toBeUndefined();
+    await expect(
+      queueHandler(
+        batch,
+        {
+          OFFLINE_DELIVERY_QUEUE: { send: () => Promise.resolve(), sendBatch: () => Promise.resolve([]), metrics: () => Promise.resolve({}) },
+          EMAIL_QUEUE: { send: () => Promise.resolve(), sendBatch: () => Promise.resolve([]), metrics: () => Promise.resolve({}) },
+        } as unknown as Bindings,
+        { waitUntil: () => {} } as unknown as ExecutionContext
+      )
+    ).resolves.toBeUndefined();
   });
 });

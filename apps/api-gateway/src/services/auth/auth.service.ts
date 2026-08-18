@@ -2,6 +2,7 @@ import { D1Database } from '@cloudflare/workers-types';
 import { getUserByEmail, createUser as dbCreateUser } from '../../db/queries/users';
 import { getOrganizationByName, createOrganization as dbCreateOrganization } from '../../db/queries/organizations';
 import { createDomain as dbCreateDomain } from '../../db/queries/domains';
+import { InviteService } from '../invites/invite.service';
 import { hashPassword, verifyPassword } from './password';
 import { generateTOTPSecret, verifyTOTP } from './totp';
 import { createSession, getSessionByRefreshToken, deleteSession, updateSessionLastSeen } from './session';
@@ -12,15 +13,32 @@ export class AuthService {
   constructor(private db: D1Database) {}
 
   async register(data: Register): Promise<{ user: User; orgCreated: boolean }> {
-    const existingOrg = await getOrganizationByName(this.db, data.organization_name);
     let organizationId: string;
+    let orgCreated = false;
+    let role = 'employee';
 
-    if (existingOrg) {
-      organizationId = existingOrg.id as string;
+    if (data.invite_code) {
+      const inviteService = new InviteService(this.db);
+      const invite = await inviteService.getInviteByCode(data.invite_code.trim().toUpperCase());
+      if (!invite || invite.status !== 'pending' || invite.expires_at < Date.now()) {
+        throw new Error('Invalid or expired invite code');
+      }
+      organizationId = invite.organization_id;
+      role = invite.role;
+      await inviteService.acceptInvite(invite.id);
     } else {
-      organizationId = `org_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
-      await dbCreateOrganization(this.db, organizationId, data.organization_name);
-      
+      const existingOrg = await getOrganizationByName(this.db, data.organization_name);
+      if (existingOrg) {
+        organizationId = existingOrg.id as string;
+      } else {
+        organizationId = `org_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+        await dbCreateOrganization(this.db, organizationId, data.organization_name);
+        orgCreated = true;
+        role = 'super_admin';
+      }
+    }
+
+    if (orgCreated) {
       const domainName = data.domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
       const domainId = `dom_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
       const verificationToken = `qyx-verify=${crypto.randomUUID().replace(/-/g, '')}`;
@@ -29,8 +47,6 @@ export class AuthService {
 
     const passwordHash = await hashPassword(data.password);
     const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
-    
-    const role = existingOrg ? 'employee' : 'super_admin';
     await dbCreateUser(this.db, userId, organizationId, data.email, data.display_name, role, passwordHash);
 
     const user = await getUserByEmail(this.db, organizationId, data.email);
@@ -38,7 +54,7 @@ export class AuthService {
 
     return {
       user: user as unknown as User,
-      orgCreated: !existingOrg,
+      orgCreated,
     };
   }
 

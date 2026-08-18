@@ -64,8 +64,28 @@ async function restoreBackup(backupDate: string): Promise<void> {
   }
 
   const restoreManifestPath = join(RESTORE_DIR, `restore-${backupDate}.json`);
-  writeFileSync(restoreManifestPath, JSON.stringify(manifest, null, 2));
-  console.log(`Restore manifest written to ${restoreManifestPath}`);
+  const restoreManifest = {
+    timestamp: new Date().toISOString(),
+    backup_timestamp: manifest.timestamp,
+    d1_backup: manifest.d1_backup,
+    r2_objects_restored: 0,
+    r2_objects_failed: 0,
+    status: 'pending_r2_restore',
+    note: 'R2 restore requires copying objects from backup bucket to live bucket via wrangler or Cloudflare dashboard. D1 restore requires importing the .sql file via wrangler d1 import.',
+  };
+  writeFileSync(restoreManifestPath, JSON.stringify(restoreManifest, null, 2));
+
+  console.log(`\n⚠️  R2 and D1 restore require manual steps via wrangler CLI or Cloudflare dashboard:`);
+  console.log(`\n1. R2 restore (copy from backup bucket to live bucket):`);
+  console.log(`   wrangler r2 bucket object copy qyx-backups-staging --source-object "${manifest.d1_backup}" --destination qyx-attachments-staging`);
+  for (const obj of manifest.objects) {
+    console.log(`   wrangler r2 bucket object copy qyx-backups-staging --source-object "backup/${obj.key}" --destination qyx-attachments-staging --destination-object "${obj.key}"`);
+  }
+  console.log(`\n2. D1 restore (import SQL backup):`);
+  console.log(`   wrangler d1 import qyx_primary_staging ${manifest.d1_backup} --remote`);
+  console.log(`\n3. Verify restore:`);
+  console.log(`   npm run restore -- verify ${backupDate}`);
+  console.log(`\nRestore manifest written to ${restoreManifestPath}`);
 }
 
 async function verifyBackup(backupDate: string): Promise<void> {
@@ -80,6 +100,7 @@ async function verifyBackup(backupDate: string): Promise<void> {
   console.log(`Verifying backup from ${manifest.timestamp}`);
   console.log(`  Objects: ${manifest.objects.length}`);
   console.log(`  Total size: ${manifest.objects.reduce((sum, obj) => sum + obj.size, 0)} bytes`);
+  console.log(`  D1 backup file: ${manifest.d1_backup}`);
 }
 
 function readdirSync(dir: string): string[] {

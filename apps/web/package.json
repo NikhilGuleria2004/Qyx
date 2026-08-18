@@ -16,16 +16,19 @@
     "deploy:prod": "pnpm build && wrangler pages project create qyx-web --production=true || true && pnpm build && wrangler pages publish dist --project-name=qyx-web"
   },
   "dependencies": {
-    "@qyx/schemas": "workspace:*",
-    "@qyx/crypto": "workspace:*",
-    "@qyx/ui": "workspace:*",
     "@qyx/config": "workspace:*",
+    "@qyx/crypto": "workspace:*",
+    "@qyx/schemas": "workspace:*",
+    "@qyx/ui": "workspace:*",
+    "lucide-react": "^0.330.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zustand": "^4.5.0",
-    "lucide-react": "^0.330.0"
+    "react-router-dom": "^7.18.2",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/react-hooks": "^8.0.1",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",

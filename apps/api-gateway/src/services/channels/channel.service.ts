@@ -91,4 +91,17 @@ export class ChannelService {
     const members = await getChannelMembers(this.db, channelId, 'active');
     return members as unknown as ChannelMember[];
   }
+
+  async listMembers(channelId: string): Promise<ChannelMember[]> {
+    const members = await getChannelMembers(this.db, channelId);
+    return members as unknown as ChannelMember[];
+  }
+
+  async removeMember(channelId: string, userId: string): Promise<void> {
+    const member = await getChannelMember(this.db, channelId, userId);
+    if (!member) {
+      throw new Error('Member not found');
+    }
+    await deleteChannelMember(this.db, channelId, userId);
+  }
 }

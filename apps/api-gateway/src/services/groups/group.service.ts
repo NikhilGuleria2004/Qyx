@@ -1,7 +1,16 @@
 import { D1Database } from '@cloudflare/workers-types';
 import { getGroupById, getGroupsByOrg, createGroup as dbCreateGroup, deleteGroup as dbDeleteGroup } from '../../db/queries/groups';
+import { getGroupMembers } from '../../db/queries/group-members';
 import { CreateGroup } from './group.schema';
 import { Group } from './group.types';
+
+export interface GroupMember {
+  user_id: string;
+  role: string;
+  status: string;
+  joined_at?: number;
+  requested_at: number;
+}
 
 export class GroupService {
   constructor(private db: D1Database) {}
@@ -26,5 +35,10 @@ export class GroupService {
 
   async deleteGroup(groupId: string): Promise<void> {
     await dbDeleteGroup(this.db, groupId);
+  }
+
+  async listMembers(groupId: string): Promise<GroupMember[]> {
+    const members = await getGroupMembers(this.db, groupId);
+    return members as unknown as GroupMember[];
   }
 }

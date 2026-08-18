@@ -19,16 +19,16 @@
     "clean": "rm -rf dist .wrangler"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.2.0",
     "@qyx/schemas": "workspace:*",
     "hono": "^4.2.0",
-    "@hono/zod-validator": "^0.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
+    "@cloudflare/workers-types": "^5.20260818.1",
     "@types/node": "^20.11.0",
     "typescript": "^5.3.3",
     "vitest": "^1.3.1",
-    "wrangler": "^3.78.0"
+    "wrangler": "^4.101.0"
   }
 }

@@ -6,6 +6,7 @@ export const RegisterSchema = z.object({
   display_name: z.string().min(1).max(255),
   organization_name: z.string().min(1).max(255),
   domain: z.string().min(1).max(255),
+  invite_code: z.string().optional(),
 });
 
 export const LoginSchema = z.object({

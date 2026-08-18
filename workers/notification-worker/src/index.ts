@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { Queue } from '@cloudflare/workers-types';
 
-type Bindings = {
+export type Bindings = {
   OFFLINE_DELIVERY_QUEUE: Queue;
   EMAIL_QUEUE: Queue;
 };

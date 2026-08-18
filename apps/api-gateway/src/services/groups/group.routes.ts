@@ -98,6 +98,16 @@ app.delete('/:groupId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json({ status: 'deleted' });
 });
 
+app.get('/:groupId/members', auth, orgScope, rbac, async (c) => {
+  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:read');
+  const groupId = c.req.param('groupId')!;
+
+  const service = new GroupService(c.env.PRIMARY_DB);
+  const members = await service.listMembers(groupId);
+
+  return c.json({ members });
+});
+
 app.route('/:groupId/requests', groupMemberRoutes);
 
 export default app;

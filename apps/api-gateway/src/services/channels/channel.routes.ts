@@ -97,6 +97,36 @@ app.delete('/:channelId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json({ status: 'deleted' });
 });
 
+app.get('/:channelId/members', auth, orgScope, rbac, async (c) => {
+  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+  const channelId = c.req.param('channelId')!;
+
+  const service = new ChannelService(c.env.PRIMARY_DB);
+  const members = await service.listMembers(channelId);
+
+  return c.json({ members });
+});
+
+app.delete('/:channelId/members/:userId', auth, orgScope, rbac, async (c) => {
+  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+  const user = c.get('user') as { user_id: string; organization_id: string };
+  const channelId = c.req.param('channelId')!;
+  const userId = c.req.param('userId')!;
+
+  const service = new ChannelService(c.env.PRIMARY_DB);
+  await service.removeMember(channelId, userId);
+
+  const audit = new AuditService(c.env.PRIMARY_DB);
+  await audit.log({
+    organization_id: user.organization_id,
+    actor_id: user.user_id,
+    event_type: 'channel_member_removed',
+    metadata: { channel_id: channelId, removed_user_id: userId },
+  });
+
+  return c.json({ status: 'removed' });
+});
+
 app.post('/:channelId/requests', auth, orgScope, rbac, adminRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
   const user = c.get('user') as { user_id: string; organization_id: string };

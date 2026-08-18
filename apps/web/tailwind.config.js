@@ -1,8 +1,13 @@
-module.exports = {
-  content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-    '../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: {
+    relative: true,
+    files: [
+      './apps/web/src/**/*.{js,ts,jsx,tsx,mdx}',
+      './packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
+    ],
+  },
   theme: {
     extend: {
       colors: {
@@ -33,3 +38,5 @@ module.exports = {
   },
   plugins: [],
 };
+
+export default config;

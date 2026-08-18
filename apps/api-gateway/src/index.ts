@@ -14,8 +14,10 @@ import groupRoutes from './services/groups/group.routes';
 import channelRoutes from './services/channels/channel.routes';
 import fileRoutes from './services/files/file.routes';
 import ssoRoutes from './services/sso/sso.routes';
+import inviteRoutes from './services/invites/invite.routes';
 import { requestId } from './middleware/requestId';
 import { metricsMiddleware } from './middleware/metrics';
+import { AlertsService } from './services/alerts/alerts.service';
 
 type Bindings = {
   PRIMARY_DB: D1Database;
@@ -61,6 +63,7 @@ app.route('/v1/realtime', realtimeRoutes);
 app.route('/v1/groups', groupRoutes);
 app.route('/v1/channels', channelRoutes);
 app.route('/v1/files', fileRoutes);
+app.route('/v1/invites', inviteRoutes);
 
 export { ConversationDO, ChannelDO };
 
@@ -79,9 +82,27 @@ async function cleanupOrphanedFiles(env: Bindings) {
   }
 }
 
+async function cleanupOldMetrics(env: Bindings) {
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  await env.PRIMARY_DB.prepare('DELETE FROM metrics_events WHERE created_at < ?').bind(cutoff).run();
+}
+
+async function evaluateAllAlerts(env: Bindings) {
+  const alertsService = new AlertsService(env.PRIMARY_DB);
+  try {
+    await alertsService.evaluateRules();
+  } catch {
+    // alert evaluation failed; continue
+  }
+}
+
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext) {
+  async scheduled(event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext) {
     await cleanupOrphanedFiles(env);
+    if (event.cron === '0 3 * * *') {
+      await cleanupOldMetrics(env);
+      await evaluateAllAlerts(env);
+    }
   },
 };

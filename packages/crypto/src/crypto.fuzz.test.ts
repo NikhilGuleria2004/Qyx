@@ -26,6 +26,19 @@ describe('fuzz — encrypt/decrypt round-trip', () => {
       })
     );
   });
+
+  it('rejects tampered ciphertext', async () => {
+    const key = await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    const plaintext = new Uint8Array([1, 2, 3, 4, 5]);
+    const { ciphertext, nonce } = await encrypt(key, plaintext);
+    const tampered = new Uint8Array(ciphertext);
+    tampered[0] ^= 0xFF;
+    await expect(decrypt(key, tampered, nonce)).rejects.toThrow();
+  });
 });
 
 describe('fuzz — sign/verify round-trip', () => {
