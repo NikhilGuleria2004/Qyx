@@ -1,9 +1,15 @@
 import { Queue } from '@cloudflare/workers-types';
+import { createB2Storage } from '@qyx/storage';
 
 type Env = {
   PRIMARY_DB: D1Database;
-  ATTACHMENTS_BUCKET: R2Bucket;
+  B2_KEY_ID: string;
+  B2_APPLICATION_KEY: string;
+  B2_ENDPOINT: string;
+  B2_REGION: string;
+  B2_BUCKET_NAME: string;
   BACKUP_QUEUE: Queue;
+  CLOUDFLARE_API_TOKEN: string;
 };
 
 export default {
@@ -12,7 +18,7 @@ export default {
       await createD1Backup(env);
     }
     if (event.cron === '0 3 * * *') {
-      await createR2Backup(env);
+      await createB2Backup(env);
     }
   },
 };
@@ -48,17 +54,23 @@ async function createD1Backup(env: Env): Promise<void> {
   }
 }
 
-async function createR2Backup(env: Env): Promise<void> {
+async function createB2Backup(env: Env): Promise<void> {
   try {
-    const bucket = env.ATTACHMENTS_BUCKET;
-    const objects = await bucket.list();
-    
+    const storage = createB2Storage({
+      keyId: env.B2_KEY_ID,
+      applicationKey: env.B2_APPLICATION_KEY,
+      endpoint: env.B2_ENDPOINT,
+      region: env.B2_REGION,
+      bucket: env.B2_BUCKET_NAME,
+    });
+    const objects = await storage.list();
+
     for (const obj of objects.objects) {
       const backupKey = `backup/${obj.key}`;
-      const objectData = await bucket.get(obj.key);
-      
+      const objectData = await storage.get(obj.key);
+
       if (objectData) {
-        await bucket.put(backupKey, objectData.body, {
+        await storage.put(backupKey, objectData.body, {
           customMetadata: {
             original_key: obj.key,
             backup_date: new Date().toISOString(),
@@ -66,10 +78,10 @@ async function createR2Backup(env: Env): Promise<void> {
         });
       }
     }
-    
-    console.log(`R2 backup completed: ${objects.objects.length} objects backed up`);
+
+    console.log(`B2 backup completed: ${objects.objects.length} objects backed up`);
   } catch (error) {
-    console.error('R2 backup error:', error);
+    console.error('B2 backup error:', error);
   }
 }
 

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { B2Storage, createB2Storage } from '@qyx/storage';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac } from '../../middleware/rbac';
@@ -10,7 +11,11 @@ import { UploadUrlSchema, CompleteUploadSchema } from './file.schema';
 
 type FileBindings = {
   PRIMARY_DB: D1Database;
-  ATTACHMENTS_BUCKET: R2Bucket;
+  B2_KEY_ID: string;
+  B2_APPLICATION_KEY: string;
+  B2_ENDPOINT: string;
+  B2_REGION: string;
+  B2_BUCKET_NAME: string;
 };
 
 type FileVariables = {
@@ -27,6 +32,16 @@ const fileRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
+function createStorage(c: { env: FileBindings }): B2Storage {
+  return createB2Storage({
+    keyId: c.env.B2_KEY_ID,
+    applicationKey: c.env.B2_APPLICATION_KEY,
+    endpoint: c.env.B2_ENDPOINT,
+    region: c.env.B2_REGION,
+    bucket: c.env.B2_BUCKET_NAME,
+  });
+}
+
 app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'files:write');
   const user = c.get('user') as { user_id: string; organization_id: string };
@@ -40,8 +55,8 @@ app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
     );
   }
 
-  const service = new FileService(c.env.PRIMARY_DB);
-  
+  const service = new FileService(c.env.PRIMARY_DB, createStorage(c));
+
   try {
     const result = await service.requestUploadUrl(user.organization_id, user.user_id, parsed.data);
 
@@ -56,7 +71,7 @@ app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
     const metricsService = new MetricsService(c.env.PRIMARY_DB);
     metricsService.recordEvent({
       service: 'file',
-      operation: 'r2_upload',
+      operation: 'b2_upload',
       organization_id: user.organization_id,
       user_id: user.user_id,
       status: 'success',
@@ -97,8 +112,8 @@ app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
     );
   }
 
-  const service = new FileService(c.env.PRIMARY_DB);
-  
+  const service = new FileService(c.env.PRIMARY_DB, createStorage(c));
+
   try {
     const file = await service.completeUpload(parsed.data.file_id);
 
@@ -125,7 +140,7 @@ app.get('/:fileId/download-url', auth, orgScope, rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const fileId = c.req.param('fileId')!;
 
-  const service = new FileService(c.env.PRIMARY_DB);
+  const service = new FileService(c.env.PRIMARY_DB, createStorage(c));
   const file = await service.getFile(fileId, user.user_id);
 
   if (!file) {
@@ -135,12 +150,12 @@ app.get('/:fileId/download-url', auth, orgScope, rbac, async (c) => {
     );
   }
 
-  const downloadUrl = `https://r2.example.com/${file.encrypted_storage_reference}?sig=${crypto.randomUUID().replace(/-/g, '')}`;
+  const downloadUrl = await service.getDownloadUrl(fileId);
 
   const metricsService = new MetricsService(c.env.PRIMARY_DB);
   metricsService.recordEvent({
     service: 'file',
-    operation: 'r2_download',
+    operation: 'b2_download',
     organization_id: user.organization_id,
     user_id: user.user_id,
     status: 'success',

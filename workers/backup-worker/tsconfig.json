@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "types": ["@cloudflare/workers-types", "node"],
+    "paths": {
+      "@qyx/schemas": ["../../packages/schemas/src/index.ts"],
+      "@qyx/crypto": ["../../packages/crypto/src/index.ts"],
+      "@qyx/ui": ["../../packages/ui/src/index.ts"],
+      "@qyx/config": ["../../packages/config/src/index.ts"],
+      "@qyx/storage": ["../../packages/storage/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", ".wrangler"]
+}

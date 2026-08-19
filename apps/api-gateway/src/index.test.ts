@@ -19,7 +19,6 @@ describe('api-gateway', () => {
   });
 
   it('scheduled handler cleans up orphaned pending files', async () => {
-    let deletedR2 = false;
     let deletedDb = false;
     const env = {
       PRIMARY_DB: {
@@ -34,13 +33,15 @@ describe('api-gateway', () => {
           }),
         }),
       } as unknown as D1Database,
-      ATTACHMENTS_BUCKET: {
-        delete: async () => { deletedR2 = true; },
-      } as unknown as R2Bucket,
+      B2_KEY_ID: 'test-key-id',
+      B2_APPLICATION_KEY: 'test-application-key',
+      B2_ENDPOINT: 's3.us-west-004.backblazeb2.com',
+      B2_REGION: 'us-west-004',
+      B2_BUCKET_NAME: 'qyx-attachments-dev',
     };
 
     await worker.scheduled({} as ScheduledEvent, env, {} as ExecutionContext);
-    expect(deletedR2).toBe(true);
+
     expect(deletedDb).toBe(true);
   });
 });

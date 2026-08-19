@@ -6,7 +6,11 @@ import conversationRoutes from '../services/conversations/conversation.routes';
 
 type Env = {
   PRIMARY_DB: D1Database;
-  ATTACHMENTS_BUCKET: R2Bucket;
+  B2_KEY_ID: string;
+  B2_APPLICATION_KEY: string;
+  B2_ENDPOINT: string;
+  B2_REGION: string;
+  B2_BUCKET_NAME: string;
   SESSION_KV: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   CHALLENGE_KV: KVNamespace;
@@ -30,11 +34,11 @@ function createMockEnv(): Env {
         }),
       }),
     } as unknown as D1Database,
-    ATTACHMENTS_BUCKET: {
-      put: async () => {},
-      get: async () => null,
-      delete: async () => {},
-    } as unknown as R2Bucket,
+    B2_KEY_ID: 'test-key-id',
+    B2_APPLICATION_KEY: 'test-application-key',
+    B2_ENDPOINT: 's3.us-west-004.backblazeb2.com',
+    B2_REGION: 'us-west-004',
+    B2_BUCKET_NAME: 'qyx-attachments-dev',
     SESSION_KV: {
       get: async (_key: string) => (user),
       put: async () => {},

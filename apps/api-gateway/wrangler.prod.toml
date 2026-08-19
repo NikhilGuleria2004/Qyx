@@ -3,14 +3,15 @@ main = "src/index.ts"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-12-01"
 
+[vars]
+B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET_NAME = "qyx-attachments-prod"
+
 [[d1_databases]]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_prod"
 database_id = "prod"
-
-[[r2_buckets]]
-binding = "ATTACHMENTS_BUCKET"
-bucket_name = "qyx-attachments-prod"
 
 [[kv_namespaces]]
 binding = "SESSION_KV"

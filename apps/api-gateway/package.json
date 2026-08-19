@@ -21,6 +21,8 @@
   "dependencies": {
     "@hono/zod-validator": "^0.2.0",
     "@qyx/schemas": "workspace:*",
+    "@qyx/storage": "workspace:*",
+    "aws4fetch": "^1.0.0",
     "hono": "^4.2.0",
     "zod": "^3.23.8"
   },

@@ -2,7 +2,7 @@
 CREATE TABLE metrics_events (
   id              TEXT PRIMARY KEY,          -- met_...
   service         TEXT NOT NULL,             -- api-gateway | messaging | group | channel | file | identity | organization
-  operation       TEXT NOT NULL,             -- http_request | do_message | queue_send | d1_query | r2_upload | r2_download
+  operation       TEXT NOT NULL,             -- http_request | do_message | queue_send | d1_query | b2_upload | b2_download
   organization_id TEXT REFERENCES organizations(id),
   user_id         TEXT REFERENCES users(id),
   status          TEXT NOT NULL,             -- success | error | timeout

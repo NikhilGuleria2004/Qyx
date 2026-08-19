@@ -215,7 +215,7 @@ export class MetricsService {
 
   async getR2Metrics(operation: 'upload' | 'download'): Promise<{ success_rate: number; latency_ms: number }> {
     const windowStart = Date.now() - 5 * 60 * 1000;
-    const op = operation === 'upload' ? 'r2_upload' : 'r2_download';
+    const op = operation === 'upload' ? 'b2_upload' : 'b2_download';
 
     const totalResult = await this.db.prepare(
       'SELECT COUNT(*) as count FROM metrics_events WHERE operation = ? AND created_at >= ?'

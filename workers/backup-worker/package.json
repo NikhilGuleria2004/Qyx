@@ -14,7 +14,9 @@
     "clean": "rm -rf dist .wrangler"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0"
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "@qyx/storage": "workspace:*",
+    "aws4fetch": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

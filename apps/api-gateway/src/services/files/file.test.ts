@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest';
+import { B2Storage } from '@qyx/storage';
 import { getOrphanedFiles } from '../../db/queries/files';
 import { FileService } from './file.service';
+
+function createMockStorage() {
+  return {
+    presignPutUrl: async (key: string, _expiresIn: number, _contentType?: string) => {
+      return `https://s3.us-west-004.backblazeb2.com/${key}?X-Amz-Expires=300`;
+    },
+    presignGetUrl: async (key: string, _expiresIn: number) => {
+      return `https://s3.us-west-004.backblazeb2.com/${key}?X-Amz-Expires=300`;
+    },
+  } as unknown as B2Storage;
+}
 
 describe('file service', () => {
   it('validates policy and requests upload URL', async () => {
@@ -20,7 +32,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.requestUploadUrl('org_1', 'usr_1', {
       mime_type: 'application/pdf',
       size_bytes: 2048310,
@@ -55,7 +67,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     await service.requestUploadUrl('org_1', 'usr_1', {
       mime_type: 'application/pdf',
       size_bytes: 1024,
@@ -79,7 +91,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     await expect(service.requestUploadUrl('org_1', 'usr_1', {
       mime_type: 'application/x-msdownload',
       size_bytes: 1024,
@@ -100,7 +112,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     await expect(service.requestUploadUrl('org_1', 'usr_1', {
       mime_type: 'application/pdf',
       size_bytes: 20 * 1024 * 1024,
@@ -121,7 +133,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     await expect(service.requestUploadUrl('org_1', 'usr_1', {
       mime_type: 'application/x-msdownload',
       size_bytes: 1024,
@@ -154,7 +166,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.getFile('file_1', 'usr_1');
     expect(result).not.toBeNull();
     expect(result?.id).toBe('file_1');
@@ -192,7 +204,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.getFile('file_1', 'usr_3');
     expect(result).not.toBeNull();
     expect(result?.id).toBe('file_1');
@@ -230,7 +242,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.getFile('file_1', 'usr_3');
     expect(result).toBeNull();
   });
@@ -264,7 +276,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.getFile('file_1', 'usr_3');
     expect(result).not.toBeNull();
     expect(result?.id).toBe('file_1');
@@ -304,7 +316,7 @@ describe('file service', () => {
       }),
     } as unknown as D1Database;
 
-    const service = new FileService(db);
+    const service = new FileService(db, createMockStorage());
     const result = await service.completeUpload('file_1');
     expect(result.status).toBe('available');
   });

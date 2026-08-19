@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { OrganizationSchema } from '@qyx/schemas';
+import { createB2Storage } from '@qyx/storage';
 import { ConversationDO } from './durable-objects/conversation';
 import { ChannelDO } from './durable-objects/channel';
 import { getOrphanedFiles, deleteFile } from './db/queries/files';
@@ -21,7 +22,11 @@ import { AlertsService } from './services/alerts/alerts.service';
 
 type Bindings = {
   PRIMARY_DB: D1Database;
-  ATTACHMENTS_BUCKET: R2Bucket;
+  B2_KEY_ID: string;
+  B2_APPLICATION_KEY: string;
+  B2_ENDPOINT: string;
+  B2_REGION: string;
+  B2_BUCKET_NAME: string;
   SESSION_KV: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   CHALLENGE_KV: KVNamespace;
@@ -71,12 +76,20 @@ async function cleanupOrphanedFiles(env: Bindings) {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const result = await getOrphanedFiles(env.PRIMARY_DB, cutoff);
   const orphans = result as Array<{ id: string; encrypted_storage_reference: string }>;
-  
+
+  const storage = createB2Storage({
+    keyId: env.B2_KEY_ID,
+    applicationKey: env.B2_APPLICATION_KEY,
+    endpoint: env.B2_ENDPOINT,
+    region: env.B2_REGION,
+    bucket: env.B2_BUCKET_NAME,
+  });
+
   for (const file of orphans) {
     try {
-      await env.ATTACHMENTS_BUCKET.delete(file.encrypted_storage_reference);
+      await storage.delete(file.encrypted_storage_reference);
     } catch {
-      // R2 object may not exist — continue with DB cleanup
+      // B2 object may not exist — continue with DB cleanup
     }
     await deleteFile(env.PRIMARY_DB, file.id);
   }

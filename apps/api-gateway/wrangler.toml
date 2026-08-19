@@ -3,6 +3,11 @@ main = "src/index.ts"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-12-01"
 
+[vars]
+B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET_NAME = "qyx-attachments-dev"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["ConversationDO", "ChannelDO"]
@@ -11,10 +16,6 @@ new_classes = ["ConversationDO", "ChannelDO"]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_dev"
 database_id = "dev"
-
-[[r2_buckets]]
-binding = "ATTACHMENTS_BUCKET"
-bucket_name = "qyx-attachments-dev"
 
 [[kv_namespaces]]
 binding = "SESSION_KV"
@@ -50,14 +51,15 @@ queue = "audit-dev"
 
 [env.staging]
 
+[env.staging.vars]
+B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET_NAME = "qyx-attachments-staging"
+
 [[env.staging.d1_databases]]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_staging"
 database_id = "staging"
-
-[[env.staging.r2_buckets]]
-binding = "ATTACHMENTS_BUCKET"
-bucket_name = "qyx-attachments-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "SESSION_KV"
@@ -93,14 +95,15 @@ queue = "audit-staging"
 
 [env.production]
 
+[env.production.vars]
+B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET_NAME = "qyx-attachments-prod"
+
 [[env.production.d1_databases]]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_prod"
 database_id = "prod"
-
-[[env.production.r2_buckets]]
-binding = "ATTACHMENTS_BUCKET"
-bucket_name = "qyx-attachments-prod"
 
 [[env.production.kv_namespaces]]
 binding = "SESSION_KV"

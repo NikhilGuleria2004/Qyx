@@ -27,7 +27,7 @@ Cloudflare Account
 │     ├── Durable Object binding: CONVERSATION_DO
 │     ├── Durable Object binding: CHANNEL_DO
 │     ├── D1 binding: PRIMARY_DB
-│     ├── R2 binding: ATTACHMENTS_BUCKET
+│     ├── B2 binding: B2_KEY_ID / B2_APPLICATION_KEY / B2_ENDPOINT / B2_REGION / B2_BUCKET_NAME
 │     ├── KV binding: SESSION_KV, RATE_LIMIT_KV, CHALLENGE_KV
 │     └── Queue bindings: OFFLINE_DELIVERY_QUEUE, EMAIL_QUEUE, AUDIT_QUEUE
 ├── Workers Service: notification-worker  → Queue consumer, Resend integration

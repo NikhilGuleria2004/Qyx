@@ -21,7 +21,7 @@
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
     "restore": "tsx scripts/restore.ts",
-    "backup:configure": "tsx scripts/configure-r2-lifecycle.ts"
+    "backup:configure": "tsx scripts/configure-b2-lifecycle.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

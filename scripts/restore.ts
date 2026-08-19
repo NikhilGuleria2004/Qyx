@@ -9,7 +9,7 @@ const RESTORE_DIR = join(process.cwd(), 'restore');
 interface BackupManifest {
   timestamp: string;
   d1_backup: string;
-  r2_manifest: string;
+  storage_manifest: string;
   objects: Array<{ key: string; size: number }>;
 }
 
@@ -47,8 +47,8 @@ async function listBackups(): Promise<void> {
 }
 
 async function restoreBackup(backupDate: string): Promise<void> {
-  const manifestPath = join(BACKUP_DIR, `r2-manifest-${backupDate}.json`);
-  
+  const manifestPath = join(BACKUP_DIR, `storage-manifest-${backupDate}.json`);
+
   if (!existsSync(manifestPath)) {
     console.error(`Backup manifest not found: ${manifestPath}`);
     process.exit(1);
@@ -57,7 +57,7 @@ async function restoreBackup(backupDate: string): Promise<void> {
   const manifest: BackupManifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
   console.log(`Restoring backup from ${manifest.timestamp}`);
   console.log(`  D1 backup: ${manifest.d1_backup}`);
-  console.log(`  R2 objects: ${manifest.objects.length}`);
+  console.log(`  Storage objects: ${manifest.objects.length}`);
 
   if (!existsSync(RESTORE_DIR)) {
     mkdirSync(RESTORE_DIR, { recursive: true });
@@ -68,18 +68,18 @@ async function restoreBackup(backupDate: string): Promise<void> {
     timestamp: new Date().toISOString(),
     backup_timestamp: manifest.timestamp,
     d1_backup: manifest.d1_backup,
-    r2_objects_restored: 0,
-    r2_objects_failed: 0,
-    status: 'pending_r2_restore',
-    note: 'R2 restore requires copying objects from backup bucket to live bucket via wrangler or Cloudflare dashboard. D1 restore requires importing the .sql file via wrangler d1 import.',
+    storage_objects_restored: 0,
+    storage_objects_failed: 0,
+    status: 'pending_storage_restore',
+    note: 'Storage restore requires copying objects from backup bucket to live bucket via B2 CLI or S3-compatible tool. D1 restore requires importing the .sql file via wrangler d1 import.',
   };
   writeFileSync(restoreManifestPath, JSON.stringify(restoreManifest, null, 2));
 
-  console.log(`\n⚠️  R2 and D1 restore require manual steps via wrangler CLI or Cloudflare dashboard:`);
-  console.log(`\n1. R2 restore (copy from backup bucket to live bucket):`);
-  console.log(`   wrangler r2 bucket object copy qyx-backups-staging --source-object "${manifest.d1_backup}" --destination qyx-attachments-staging`);
+  console.log(`\n⚠️  Storage and D1 restore require manual steps via B2 CLI or S3-compatible tool:`);
+  console.log(`\n1. Storage restore (copy from backup bucket to live bucket):`);
+  console.log(`   b2 file copy-by-name qyx-backups-staging backup/<object-key> qyx-attachments-staging <object-key>`);
   for (const obj of manifest.objects) {
-    console.log(`   wrangler r2 bucket object copy qyx-backups-staging --source-object "backup/${obj.key}" --destination qyx-attachments-staging --destination-object "${obj.key}"`);
+    console.log(`   b2 file copy-by-name qyx-backups-staging backup/${obj.key} qyx-attachments-staging ${obj.key}`);
   }
   console.log(`\n2. D1 restore (import SQL backup):`);
   console.log(`   wrangler d1 import qyx_primary_staging ${manifest.d1_backup} --remote`);
@@ -89,8 +89,8 @@ async function restoreBackup(backupDate: string): Promise<void> {
 }
 
 async function verifyBackup(backupDate: string): Promise<void> {
-  const manifestPath = join(BACKUP_DIR, `r2-manifest-${backupDate}.json`);
-  
+  const manifestPath = join(BACKUP_DIR, `storage-manifest-${backupDate}.json`);
+
   if (!existsSync(manifestPath)) {
     console.error(`Backup manifest not found: ${manifestPath}`);
     process.exit(1);
