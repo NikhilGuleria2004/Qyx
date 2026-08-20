@@ -1,11 +1,11 @@
-name = "api-gateway"
+name = "qyx"
 main = "src/index.ts"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-12-01"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ConversationDO", "ChannelDO"]
+new_sqlite_classes = ["ConversationDO", "ChannelDO"]
 
 [env.staging]
 
