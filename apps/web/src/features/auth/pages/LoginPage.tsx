@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
 import { setSession } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 interface LoginResponse {
   access_token?: string;
@@ -35,7 +36,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/v1/auth/login', {
+      const res = await fetch(apiUrl('/v1/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -56,7 +57,7 @@ export default function LoginPage() {
       if (data.access_token && data.refresh_token && data.user) {
         setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         try {
-          const orgRes = await fetch(`/v1/organizations/${data.user.organization_id}`, {
+          const orgRes = await fetch(apiUrl(`/v1/organizations/${data.user.organization_id}`), {
             headers: { Authorization: `Bearer ${data.access_token}` },
           });
           if (orgRes.ok) {
@@ -82,7 +83,7 @@ export default function LoginPage() {
   function handleSsoSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!ssoOrgId.trim() || !ssoProvider.trim()) return;
-    window.location.href = `/v1/auth/sso/${encodeURIComponent(ssoProvider)}/start?org_id=${encodeURIComponent(ssoOrgId.trim())}`;
+    window.location.href = apiUrl(`/v1/auth/sso/${encodeURIComponent(ssoProvider)}/start?org_id=${encodeURIComponent(ssoOrgId.trim())}`);
   }
 
   return (

@@ -1,4 +1,5 @@
 const API_BASE = '/v1';
+import { apiUrl } from '../../../lib/config';
 
 interface ApiError {
   message: string;
@@ -17,7 +18,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(apiUrl(`${API_BASE}${path}`), {
     ...options,
     headers,
   });

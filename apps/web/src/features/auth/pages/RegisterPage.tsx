@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
+import { apiUrl } from '../../../lib/config';
 
 interface ApiErrorShape {
   error?: { code?: string; message?: string };
@@ -22,7 +23,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/v1/auth/register', {
+      const res = await fetch(apiUrl('/v1/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

@@ -1,4 +1,5 @@
 import { getAccessToken } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 export interface Device {
   id: string;
@@ -24,7 +25,7 @@ export interface RegisterDeviceBody {
 export async function listMyDevices(): Promise<Device[]> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/me/devices', {
+  const res = await fetch(apiUrl('/v1/me/devices'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -38,7 +39,7 @@ export async function listMyDevices(): Promise<Device[]> {
 export async function registerDevice(body: RegisterDeviceBody): Promise<Device> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/me/devices', {
+  const res = await fetch(apiUrl('/v1/me/devices'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
@@ -53,7 +54,7 @@ export async function registerDevice(body: RegisterDeviceBody): Promise<Device> 
 export async function resolvePairingCode(pairingCode: string): Promise<Device> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/me/devices/resolve-pairing-code', {
+  const res = await fetch(apiUrl('/v1/me/devices/resolve-pairing-code'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ pairing_code: pairingCode }),
@@ -69,7 +70,7 @@ export async function resolvePairingCode(pairingCode: string): Promise<Device> {
 export async function authorizeDevice(deviceId: string, payload: string): Promise<Device> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch(`/v1/me/devices/${deviceId}/authorize`, {
+  const res = await fetch(apiUrl(`/v1/me/devices/${deviceId}/authorize`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ payload }),
@@ -85,7 +86,7 @@ export async function authorizeDevice(deviceId: string, payload: string): Promis
 export async function revokeDevice(deviceId: string): Promise<void> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch(`/v1/me/devices/${deviceId}`, {
+  const res = await fetch(apiUrl(`/v1/me/devices/${deviceId}`), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
 import { setSession } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 interface MfaResponse {
   access_token?: string;
@@ -32,7 +33,7 @@ export default function MfaPage() {
         setLoading(false);
         return;
       }
-      const res = await fetch('/v1/auth/mfa/verify', {
+      const res = await fetch(apiUrl('/v1/auth/mfa/verify'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

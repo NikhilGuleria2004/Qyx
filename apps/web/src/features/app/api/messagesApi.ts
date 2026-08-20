@@ -1,4 +1,5 @@
 import { getAccessToken } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 export interface Conversation {
   id: string;
@@ -34,7 +35,7 @@ export interface ConversationKeys {
 export async function listConversations(): Promise<Conversation[]> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/conversations', {
+  const res = await fetch(apiUrl('/v1/conversations'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -49,7 +50,7 @@ export async function getMessages(conversationId: string, beforeCreatedAt?: numb
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
   const qs = beforeCreatedAt ? `?beforeCreatedAt=${beforeCreatedAt}` : '';
-  const res = await fetch(`/v1/conversations/${conversationId}/messages${qs}`, {
+  const res = await fetch(apiUrl(`/v1/conversations/${conversationId}/messages${qs}`), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -68,7 +69,7 @@ export async function sendMessage(conversationId: string, body: {
 }): Promise<Message> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch(`/v1/conversations/${conversationId}/messages`, {
+  const res = await fetch(apiUrl(`/v1/conversations/${conversationId}/messages`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
@@ -83,7 +84,7 @@ export async function sendMessage(conversationId: string, body: {
 export async function getConversationKeys(conversationId: string): Promise<ConversationKeys> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch(`/v1/conversations/${conversationId}/keys`, {
+  const res = await fetch(apiUrl(`/v1/conversations/${conversationId}/keys`), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -96,7 +97,7 @@ export async function getConversationKeys(conversationId: string): Promise<Conve
 export async function createConversation(userId: string): Promise<Conversation> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/conversations', {
+  const res = await fetch(apiUrl('/v1/conversations'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ user_id: userId }),

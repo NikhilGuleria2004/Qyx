@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { setSession } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 interface SsoCallbackResponse {
   access_token: string;
@@ -46,7 +47,7 @@ export default function SsoCallbackPage() {
       }
 
       try {
-        const res = await fetch(`/v1/auth/sso/${encodeURIComponent(provider)}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
+         const res = await fetch(apiUrl(`/v1/auth/sso/${encodeURIComponent(provider)}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`), {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });

@@ -4,6 +4,7 @@ compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-12-01"
 
 [vars]
+ALLOWED_ORIGIN = "http://localhost:5173,https://qyx-web-staging.pages.dev"
 B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
 B2_REGION = "us-west-004"
 B2_BUCKET_NAME = "qyx-attachments-dev"

@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/authStore';
+import { apiUrl } from './config';
 
 export function getAccessToken(): string | null {
   return useAuthStore.getState().accessToken;
@@ -40,7 +41,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`/v1${path}`, { ...options, headers });
+  let res = await fetch(apiUrl('/v1' + path), { ...options, headers });
 
   if (res.status === 401 && !(options as { _retry?: boolean })._retry) {
     if (!refreshing) {
@@ -50,7 +51,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
         const newToken = await refreshPromise;
         if (newToken) {
           const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-          res = await fetch(`/v1${path}`, { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+          res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
         }
       } catch {
         clearSession();
@@ -63,7 +64,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
       const newToken = getAccessToken();
       if (newToken) {
         const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-        res = await fetch(`/v1${path}`, { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+        res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
       }
     }
   }
@@ -86,7 +87,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 export async function logout(): Promise<void> {
   const token = getAccessToken();
   try {
-    await fetch('/v1/auth/logout', {
+    await fetch(apiUrl('/v1/auth/logout'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     });

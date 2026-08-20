@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+// eslint-disable-next-line import/no-unresolved
+import { cors } from 'hono/cors';
 import { OrganizationSchema } from '@qyx/schemas';
 import { createB2Storage } from '@qyx/storage';
 import { ConversationDO } from './durable-objects/conversation';
@@ -35,9 +37,22 @@ type Bindings = {
   OFFLINE_DELIVERY_QUEUE: Queue;
   EMAIL_QUEUE: Queue;
   AUDIT_QUEUE: Queue;
+  ALLOWED_ORIGIN: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', (c, next) => {
+  const corsMiddleware = cors({
+    origin: (c.env.ALLOWED_ORIGIN || 'https://qyx.pages.dev').split(','),
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['Content-Length'],
+    credentials: true,
+    maxAge: 600,
+  });
+  return corsMiddleware(c, next);
+});
 
 app.use('*', requestId);
 app.use('*', metricsMiddleware);

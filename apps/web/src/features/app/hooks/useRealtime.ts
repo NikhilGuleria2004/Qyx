@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { getAccessToken } from '../../../lib/auth';
+import { wsUrl } from '../../../lib/config';
 
 type ServerFrame =
   | { type: 'message'; conversation_id: string; message: Record<string, unknown> }
@@ -21,11 +22,10 @@ export function useRealtime(onMessage: MessageHandler) {
 
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/v1/realtime?access_token=${encodeURIComponent(token)}`;
+    const wsUrlValue = wsUrl('/v1/realtime?access_token=' + encodeURIComponent(token));
 
     try {
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrlValue);
       wsRef.current = ws;
 
       ws.addEventListener('open', () => {

@@ -1,4 +1,5 @@
 import { getAccessToken } from '../../../lib/auth';
+import { apiUrl } from '../../../lib/config';
 
 export interface UploadUrlRequest {
   mime_type: string;
@@ -32,7 +33,7 @@ export interface DownloadUrlResponse {
 export async function requestUploadUrl(data: UploadUrlRequest): Promise<UploadUrlResponse> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/files/upload-url', {
+  const res = await fetch(apiUrl('/v1/files/upload-url'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
@@ -47,7 +48,7 @@ export async function requestUploadUrl(data: UploadUrlRequest): Promise<UploadUr
 export async function completeUpload(data: CompleteUploadRequest): Promise<CompleteUploadResponse> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/files/' + data.file_id + '/complete', {
+  const res = await fetch(apiUrl('/v1/files/' + data.file_id + '/complete'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
@@ -62,7 +63,7 @@ export async function completeUpload(data: CompleteUploadRequest): Promise<Compl
 export async function getDownloadUrl(fileId: string): Promise<DownloadUrlResponse> {
   const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
-  const res = await fetch('/v1/files/' + fileId + '/download-url', {
+  const res = await fetch(apiUrl('/v1/files/' + fileId + '/download-url'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {

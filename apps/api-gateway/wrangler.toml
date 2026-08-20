@@ -10,6 +10,7 @@ new_sqlite_classes = ["ConversationDO", "ChannelDO"]
 [env.staging]
 
 [env.staging.vars]
+ALLOWED_ORIGIN = "http://localhost:5173,https://qyx-web-staging.pages.dev"
 B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
 B2_REGION = "us-east-005"
 B2_BUCKET_NAME = "qyx-bucket"
@@ -54,6 +55,7 @@ queue = "audit-staging"
 [env.production]
 
 [env.production.vars]
+ALLOWED_ORIGIN = "https://qyx.pages.dev"
 B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
 B2_REGION = "us-east-005"
 B2_BUCKET_NAME = "qyx-bucket"

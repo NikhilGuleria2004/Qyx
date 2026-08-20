@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiUrl } from '../lib/config';
 
 export interface AuthState {
   user: { id: string; email: string; name: string; role: string; orgId: string } | null;
@@ -27,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
         const refreshToken = get().refreshToken;
         if (!refreshToken) return null;
         try {
-          const res = await fetch('/v1/auth/refresh', {
+          const res = await fetch(apiUrl('/v1/auth/refresh'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken }),
