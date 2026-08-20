@@ -5,12 +5,12 @@ import { createDomain as dbCreateDomain } from '../../db/queries/domains';
 import { InviteService } from '../invites/invite.service';
 import { hashPassword, verifyPassword } from './password';
 import { generateTOTPSecret, verifyTOTP } from './totp';
-import { createSession, getSessionByRefreshToken, deleteSession, updateSessionLastSeen } from './session';
+import { createSession, getSessionByRefreshToken, deleteSession, updateSessionLastSeen, deleteUserSessions } from './session';
 import { Register, Login } from './auth.schema';
 import { User, LoginState } from './auth.types';
 
 export class AuthService {
-  constructor(private db: D1Database) {}
+  constructor(private db: D1Database, private sessionKv?: KVNamespace) {}
 
   async register(data: Register): Promise<{ user: User; orgCreated: boolean }> {
     let organizationId: string;
@@ -129,11 +129,20 @@ export class AuthService {
     };
   }
 
-  async issueSession(userId: string, organizationId: string, deviceId?: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async issueSession(userId: string, organizationId: string, role: string, deviceId?: string): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = crypto.randomUUID();
     const refreshToken = `rt_${crypto.randomUUID().replace(/-/g, '')}`;
     
     await createSession(this.db, userId, organizationId, refreshToken, deviceId);
+
+    if (this.sessionKv) {
+      await this.sessionKv.put(accessToken, JSON.stringify({
+        user_id: userId,
+        organization_id: organizationId,
+        role,
+        device_id: deviceId,
+      }), { expirationTtl: 900 });
+    }
     
     return {
       accessToken,
@@ -141,7 +150,7 @@ export class AuthService {
     };
   }
 
-  async refreshSession(refreshToken: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+  async refreshSession(refreshToken: string, oldAccessToken?: string): Promise<{ accessToken: string; refreshToken: string } | null> {
     const session = await getSessionByRefreshToken(this.db, refreshToken);
     if (!session || (session as { expires_at: number }).expires_at < Date.now()) {
       return null;
@@ -152,8 +161,27 @@ export class AuthService {
     const newAccessToken = crypto.randomUUID();
     const newRefreshToken = `rt_${crypto.randomUUID().replace(/-/g, '')}`;
     
+    const userId = (session as { user_id: string }).user_id;
+    const organizationId = (session as { organization_id: string }).organization_id;
+    const deviceId = (session as { device_id?: string }).device_id;
+
+    const user = await this.db.prepare('SELECT role FROM users WHERE id = ?').bind(userId).first() as { role: string } | null;
+    const role = user?.role || 'employee';
+
     await deleteSession(this.db, refreshToken);
-    await createSession(this.db, (session as { user_id: string }).user_id, (session as { organization_id: string }).organization_id, newRefreshToken, (session as { device_id?: string }).device_id);
+    await createSession(this.db, userId, organizationId, newRefreshToken, deviceId);
+
+    if (this.sessionKv) {
+      if (oldAccessToken) {
+        await this.sessionKv.delete(oldAccessToken);
+      }
+      await this.sessionKv.put(newAccessToken, JSON.stringify({
+        user_id: userId,
+        organization_id: organizationId,
+        role,
+        device_id: deviceId,
+      }), { expirationTtl: 900 });
+    }
     
     return {
       accessToken: newAccessToken,
@@ -161,8 +189,15 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken: string): Promise<void> {
-    await deleteSession(this.db, refreshToken);
+  async logout(accessToken: string, userId?: string): Promise<void> {
+    if (this.sessionKv && accessToken) {
+      await this.sessionKv.delete(accessToken);
+    }
+    if (userId) {
+      await deleteUserSessions(this.db, userId);
+    } else {
+      await deleteSession(this.db, accessToken);
+    }
   }
 
   async getMe(userId: string): Promise<User | null> {

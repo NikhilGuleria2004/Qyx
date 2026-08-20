@@ -7,10 +7,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "wrangler deploy --dry-run",
-    "deploy:dev": "wrangler deploy --env dev",
+    "deploy:dev": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env prod",
-    "db:migrate:dev": "wrangler d1 migrations apply qyx_primary_dev",
+    "db:migrate:dev": "wrangler d1 migrations apply qyx_primary_prod",
     "db:migrate:staging": "wrangler d1 migrations apply qyx_primary_staging --env staging",
     "db:migrate:prod": "wrangler d1 migrations apply qyx_primary_prod --env prod",
     "test": "vitest run",

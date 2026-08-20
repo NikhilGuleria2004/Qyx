@@ -22,7 +22,7 @@ type SsoProvider = {
 };
 
 export class SsoService {
-  constructor(private db: D1Database) {}
+  constructor(private db: D1Database, private sessionKv?: KVNamespace) {}
 
   async createProvider(orgId: string, data: CreateSsoProvider): Promise<SsoProvider> {
     const id = `sso_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
@@ -193,8 +193,17 @@ export class SsoService {
       };
     }
 
+    const internalAccessToken = crypto.randomUUID();
     const refreshToken = `rt_${crypto.randomUUID().replace(/-/g, '')}`;
     await createSession(this.db, user.id, user.organization_id, refreshToken);
+
+    if (this.sessionKv) {
+      await this.sessionKv.put(internalAccessToken, JSON.stringify({
+        user_id: user.id,
+        organization_id: user.organization_id,
+        role: user.role,
+      }), { expirationTtl: 900 });
+    }
 
     const audit = new AuditService(this.db);
     await audit.log({
@@ -205,7 +214,7 @@ export class SsoService {
     });
 
     return {
-      accessToken: crypto.randomUUID(),
+      accessToken: internalAccessToken,
       refreshToken,
       user: {
         id: user.id,

@@ -10,6 +10,7 @@ import { CreateSsoProviderSchema, UpdateSsoProviderSchema } from './sso.schema';
 
 type SsoBindings = {
   PRIMARY_DB: D1Database;
+  SESSION_KV: KVNamespace;
 };
 
 type SsoVariables = {
@@ -46,7 +47,7 @@ app.get('/:provider/start', optionalAuth, async (c) => {
   }
   const orgIdStr = orgId;
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const provider = await service.getProviderByName(orgIdStr, providerName);
 
   if (!provider || !provider.enabled) {
@@ -111,7 +112,7 @@ app.get('/:provider/callback', optionalAuth, async (c) => {
     );
   }
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const provider = await service.getProviderByName(orgIdStr, providerName);
 
   if (!provider || !provider.enabled) {
@@ -182,7 +183,7 @@ app.post('/:orgId/providers', auth, orgScope, rbac, adminRateLimit, async (c) =>
     );
   }
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const provider = await service.createProvider(orgId, parsed.data);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
@@ -200,7 +201,7 @@ app.get('/:orgId/providers', auth, orgScope, rbac, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
   const orgId = c.req.param('orgId')!;
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const providers = await service.listProviders(orgId);
 
   const safeProviders = providers.map((p) => ({
@@ -237,7 +238,7 @@ app.patch('/:orgId/providers/:providerId', auth, orgScope, rbac, adminRateLimit,
     );
   }
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const provider = await service.updateProvider(orgId, providerId, parsed.data);
 
   if (!provider) {
@@ -264,7 +265,7 @@ app.delete('/:orgId/providers/:providerId', auth, orgScope, rbac, adminRateLimit
   const providerId = c.req.param('providerId')!;
   const user = c.get('user') as { user_id: string };
 
-  const service = new SsoService(c.env.PRIMARY_DB);
+  const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const deleted = await service.deleteProvider(orgId, providerId);
 
   if (!deleted) {

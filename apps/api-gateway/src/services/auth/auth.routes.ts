@@ -9,6 +9,7 @@ import { RegisterSchema, LoginSchema, MfaVerifySchema, RefreshSchema } from './a
 
 type AuthBindings = {
   PRIMARY_DB: D1Database;
+  SESSION_KV: KVNamespace;
 };
 
 type AuthVariables = {
@@ -38,10 +39,10 @@ app.post('/register', optionalAuth, async (c) => {
     );
   }
 
-  const service = new AuthService(c.env.PRIMARY_DB);
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const result = await service.register(parsed.data);
 
-  const { accessToken, refreshToken } = await service.issueSession(result.user.id, result.user.organization_id);
+  const { accessToken, refreshToken } = await service.issueSession(result.user.id, result.user.organization_id, result.user.role);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -71,7 +72,7 @@ app.post('/login', optionalAuth, async (c) => {
     );
   }
 
-  const service = new AuthService(c.env.PRIMARY_DB);
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   try {
     const result = await service.login(parsed.data);
 
@@ -86,7 +87,7 @@ app.post('/login', optionalAuth, async (c) => {
       return c.json({ state: result.state.state, mfa_required: true, user_id: result.state.userId });
     }
 
-    const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!);
+    const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!, result.state.role!);
 
     const audit = new AuditService(c.env.PRIMARY_DB);
     await audit.log({
@@ -133,10 +134,10 @@ app.post('/mfa/verify', async (c) => {
     );
   }
 
-  const service = new AuthService(c.env.PRIMARY_DB);
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const state = await service.verifyMfa(userId, parsed.data.mfa_code);
   
-  const { accessToken, refreshToken } = await service.issueSession(state.userId!, state.organizationId!);
+  const { accessToken, refreshToken } = await service.issueSession(state.userId!, state.organizationId!, state.role!);
   
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -169,7 +170,7 @@ app.post('/refresh', async (c) => {
     );
   }
 
-  const service = new AuthService(c.env.PRIMARY_DB);
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const tokens = await service.refreshSession(parsed.data.refresh_token);
   
   if (!tokens) {
@@ -192,8 +193,8 @@ app.post('/logout', auth, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   
   if (token) {
-    const service = new AuthService(c.env.PRIMARY_DB);
-    await service.logout(token);
+    const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
+    await service.logout(token, user.user_id);
   }
   
   const audit = new AuditService(c.env.PRIMARY_DB);
@@ -210,7 +211,7 @@ app.post('/logout', auth, async (c) => {
 app.get('/me', auth, orgScope, rbac, async (c) => {
   (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
   const user = c.get('user') as { user_id: string };
-  const service = new AuthService(c.env.PRIMARY_DB);
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const me = await service.getMe(user.user_id);
   
   if (!me) {
