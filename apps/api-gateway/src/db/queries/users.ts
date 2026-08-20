@@ -6,7 +6,11 @@ export async function getUserById(db: D1Database, userId: string) {
 }
 
 export async function getUserByEmail(db: D1Database, organizationId: string, email: string) {
-  const result = await db.prepare('SELECT * FROM users WHERE organization_id = ? AND email = ?').bind(organizationId, email).first();
+  if (organizationId) {
+    const result = await db.prepare('SELECT * FROM users WHERE organization_id = ? AND email = ?').bind(organizationId, email).first();
+    return result;
+  }
+  const result = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
   return result;
 }
 
@@ -19,11 +23,11 @@ export async function listUsersByOrg(db: D1Database, organizationId: string, sta
   return result.results;
 }
 
-export async function createUser(db: D1Database, id: string, organizationId: string, email: string, displayName: string, role: string, publicKey?: string) {
+export async function createUser(db: D1Database, id: string, organizationId: string, email: string, displayName: string, role: string, publicKey?: string, passwordHash?: string) {
   const now = Date.now();
   const result = await db.prepare(
-    'INSERT INTO users (id, organization_id, email, display_name, role, status, public_key, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(id, organizationId, email, displayName, role, 'active', publicKey || null, now, now).run();
+    'INSERT INTO users (id, organization_id, email, display_name, role, status, public_key, password_hash, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, organizationId, email, displayName, role, 'active', publicKey || null, passwordHash || null, now, now).run();
   return result;
 }
 

@@ -47,7 +47,7 @@ export class AuthService {
 
     const passwordHash = await hashPassword(data.password);
     const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
-    await dbCreateUser(this.db, userId, organizationId, data.email, data.display_name, role, passwordHash);
+    await dbCreateUser(this.db, userId, organizationId, data.email, data.display_name, role, undefined, passwordHash);
 
     const user = await getUserByEmail(this.db, organizationId, data.email);
     if (!user) throw new Error('Failed to create user');

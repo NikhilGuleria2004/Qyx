@@ -40,7 +40,9 @@ app.post('/register', optionalAuth, async (c) => {
 
   const service = new AuthService(c.env.PRIMARY_DB);
   const result = await service.register(parsed.data);
-  
+
+  const { accessToken, refreshToken } = await service.issueSession(result.user.id, result.user.organization_id);
+
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
     organization_id: result.user.organization_id,
@@ -48,8 +50,14 @@ app.post('/register', optionalAuth, async (c) => {
     event_type: 'user_registered',
     metadata: { email: result.user.email, org_created: result.orgCreated },
   });
-  
-  return c.json({ user: result.user, org_created: result.orgCreated }, 201);
+
+  return c.json({
+    user: result.user,
+    org_created: result.orgCreated,
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_in: 900,
+  }, 201);
 });
 
 app.post('/login', optionalAuth, async (c) => {
@@ -64,39 +72,46 @@ app.post('/login', optionalAuth, async (c) => {
   }
 
   const service = new AuthService(c.env.PRIMARY_DB);
-  const result = await service.login(parsed.data);
-  
-  if (result.state.state === 'MFA_CHALLENGE_ISSUED') {
+  try {
+    const result = await service.login(parsed.data);
+
+    if (result.state.state === 'MFA_CHALLENGE_ISSUED') {
+      const audit = new AuditService(c.env.PRIMARY_DB);
+      await audit.log({
+        organization_id: result.state.organizationId!,
+        actor_id: result.state.userId,
+        event_type: 'login_mfa_required',
+        metadata: { email: parsed.data.email },
+      });
+      return c.json({ state: result.state.state, mfa_required: true, user_id: result.state.userId });
+    }
+
+    const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!);
+
     const audit = new AuditService(c.env.PRIMARY_DB);
     await audit.log({
       organization_id: result.state.organizationId!,
       actor_id: result.state.userId,
-      event_type: 'login_mfa_required',
+      event_type: 'login_success',
       metadata: { email: parsed.data.email },
     });
-    return c.json({ state: result.state.state, mfa_required: true, user_id: result.state.userId });
-  }
 
-  const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!);
-  
-  const audit = new AuditService(c.env.PRIMARY_DB);
-  await audit.log({
-    organization_id: result.state.organizationId!,
-    actor_id: result.state.userId,
-    event_type: 'login_success',
-    metadata: { email: parsed.data.email },
-  });
-  
-  return c.json({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    expires_in: 900,
-    user: {
-      id: result.state.userId,
-      organization_id: result.state.organizationId,
-      role: result.state.role,
-    },
-  });
+    return c.json({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: 900,
+      user: {
+        id: result.state.userId,
+        organization_id: result.state.organizationId,
+        role: result.state.role,
+      },
+    });
+  } catch (err) {
+    return c.json(
+      { error: { code: 'UNAUTHENTICATED', message: 'Invalid credentials', request_id: c.get('requestId') as string } },
+      401
+    );
+  }
 });
 
 app.post('/mfa/verify', async (c) => {

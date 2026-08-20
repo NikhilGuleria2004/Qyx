@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
+import { setSession } from '../../../lib/auth';
 import { apiUrl } from '../../../lib/config';
 
 interface ApiErrorShape {
@@ -28,13 +29,16 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const data = (await res.json()) as ApiErrorShape & { user?: { id: string; organization_id: string; role: string; email?: string; display_name?: string }; org_created?: boolean };
+      const data = (await res.json()) as ApiErrorShape & { user?: { id: string; organization_id: string; role: string; email?: string; display_name?: string }; org_created?: boolean; access_token?: string; refresh_token?: string };
       if (!res.ok) {
         setError(data.error?.message || data.message || `HTTP ${res.status}`);
         setLoading(false);
         return;
       }
       if (data.org_created) {
+        if (data.access_token && data.refresh_token && data.user) {
+          setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
+        }
         navigate('/onboarding?flow=create');
         return;
       }
