@@ -30,17 +30,17 @@ max_batch_timeout = 5
 binding = "EMAIL_QUEUE"
 queue = "email-staging"
 
-[env.prod]
-[[env.prod.queues.producers]]
+[env.production]
+[[env.production.queues.producers]]
 binding = "OFFLINE_DELIVERY_QUEUE"
 queue = "offline-delivery-prod"
 
-[[env.prod.queues.consumers]]
+[[env.production.queues.consumers]]
 queue = "offline-delivery-prod"
 max_batch_size = 10
 max_batch_timeout = 5
 
-[[env.prod.queues.producers]]
+[[env.production.queues.producers]]
 binding = "EMAIL_QUEUE"
 queue = "email-prod"
 

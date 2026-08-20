@@ -62,7 +62,7 @@ jobs:
         run: pnpm install
 
       - name: Create D1 backup (production)
-        run: pnpm --filter @qyx/api-gateway wrangler d1 backup create qyx_primary_prod --env prod --output-dir ./backups/production
+        run: pnpm --filter @qyx/api-gateway wrangler d1 backup create qyx_primary_prod --env production --output-dir ./backups/production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PRODUCTION }}
 

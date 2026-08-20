@@ -22,12 +22,12 @@ binding = "PRIMARY_DB"
 database_name = "qyx_primary_staging"
 database_id = "staging"
 
-[env.prod]
-[[env.prod.queues.producers]]
+[env.production]
+[[env.production.queues.producers]]
 binding = "AUDIT_QUEUE"
 queue = "audit-prod"
 
-[[env.prod.d1_databases]]
+[[env.production.d1_databases]]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_prod"
 database_id = "prod"

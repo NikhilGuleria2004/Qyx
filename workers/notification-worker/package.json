@@ -9,7 +9,7 @@
     "build": "wrangler deploy --dry-run",
     "deploy:dev": "wrangler deploy --env dev",
     "deploy:staging": "wrangler deploy --env staging",
-    "deploy:prod": "wrangler deploy --env prod",
+    "deploy:prod": "wrangler deploy --env production",
     "test": "vitest run",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit",
