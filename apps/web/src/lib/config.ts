@@ -1,5 +1,6 @@
 export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
+  'https://qyx.nikhilguleria20004-fc0.workers.dev';
 
 export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;

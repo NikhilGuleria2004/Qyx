@@ -7,6 +7,51 @@ compatibility_date = "2024-12-01"
 tag = "v1"
 new_sqlite_classes = ["ConversationDO", "ChannelDO"]
 
+[env.dev]
+
+[env.dev.vars]
+ALLOWED_ORIGIN = "http://localhost:5173,https://qyx-web-dev.pages.dev"
+B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
+B2_REGION = "us-east-005"
+B2_BUCKET_NAME = "qyx-bucket"
+
+[[env.dev.d1_databases]]
+binding = "PRIMARY_DB"
+database_name = "qyx_primary_prod"
+database_id = "5a22b289-859d-4e1f-91ce-6b6b540fc726"
+
+[[env.dev.kv_namespaces]]
+binding = "SESSION_KV"
+id = "a20126185ec14d92a0f0dece057687ac"
+
+[[env.dev.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "2942fdd5411646da89dcd9740b7dc78d"
+
+[[env.dev.kv_namespaces]]
+binding = "CHALLENGE_KV"
+id = "a65764dd2af4451fad7ffa8c6da003c7"
+
+[[env.dev.durable_objects.bindings]]
+name = "CONVERSATION_DO"
+class_name = "ConversationDO"
+
+[[env.dev.durable_objects.bindings]]
+name = "CHANNEL_DO"
+class_name = "ChannelDO"
+
+[[env.dev.queues.producers]]
+binding = "OFFLINE_DELIVERY_QUEUE"
+queue = "offline-delivery-prod"
+
+[[env.dev.queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "email-prod"
+
+[[env.dev.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-prod"
+
 [env.staging]
 
 [env.staging.vars]
@@ -55,7 +100,7 @@ queue = "audit-staging"
 [env.production]
 
 [env.production.vars]
-ALLOWED_ORIGIN = "https://qyx.pages.dev"
+ALLOWED_ORIGIN = "https://qyx.pages.dev,http://localhost:5173"
 B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
 B2_REGION = "us-east-005"
 B2_BUCKET_NAME = "qyx-bucket"
