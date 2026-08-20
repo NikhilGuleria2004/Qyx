@@ -3,58 +3,16 @@ main = "src/index.ts"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-12-01"
 
-[vars]
-B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
-B2_REGION = "us-west-004"
-B2_BUCKET_NAME = "qyx-attachments-dev"
-
 [[migrations]]
 tag = "v1"
 new_classes = ["ConversationDO", "ChannelDO"]
 
-[[d1_databases]]
-binding = "PRIMARY_DB"
-database_name = "qyx_primary_dev"
-database_id = "dev"
-
-[[kv_namespaces]]
-binding = "SESSION_KV"
-id = "dev-session-kv"
-
-[[kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "dev-rate-limit-kv"
-
-[[kv_namespaces]]
-binding = "CHALLENGE_KV"
-id = "dev-challenge-kv"
-
-[[durable_objects.bindings]]
-name = "CONVERSATION_DO"
-class_name = "ConversationDO"
-
-[[durable_objects.bindings]]
-name = "CHANNEL_DO"
-class_name = "ChannelDO"
-
-[[queues.producers]]
-binding = "OFFLINE_DELIVERY_QUEUE"
-queue = "offline-delivery-dev"
-
-[[queues.producers]]
-binding = "EMAIL_QUEUE"
-queue = "email-dev"
-
-[[queues.producers]]
-binding = "AUDIT_QUEUE"
-queue = "audit-dev"
-
 [env.staging]
 
 [env.staging.vars]
-B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
-B2_REGION = "us-west-004"
-B2_BUCKET_NAME = "qyx-attachments-staging"
+B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
+B2_REGION = "us-east-005"
+B2_BUCKET_NAME = "qyx-bucket"
 
 [[env.staging.d1_databases]]
 binding = "PRIMARY_DB"
@@ -96,26 +54,26 @@ queue = "audit-staging"
 [env.production]
 
 [env.production.vars]
-B2_ENDPOINT = "s3.us-west-004.backblazeb2.com"
-B2_REGION = "us-west-004"
-B2_BUCKET_NAME = "qyx-attachments-prod"
+B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
+B2_REGION = "us-east-005"
+B2_BUCKET_NAME = "qyx-bucket"
 
 [[env.production.d1_databases]]
 binding = "PRIMARY_DB"
 database_name = "qyx_primary_prod"
-database_id = "prod"
+database_id = "5a22b289-859d-4e1f-91ce-6b6b540fc726"
 
 [[env.production.kv_namespaces]]
 binding = "SESSION_KV"
-id = "prod-session-kv"
+id = "a20126185ec14d92a0f0dece057687ac"
 
 [[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "prod-rate-limit-kv"
+id = "2942fdd5411646da89dcd9740b7dc78d"
 
 [[env.production.kv_namespaces]]
 binding = "CHALLENGE_KV"
-id = "prod-challenge-kv"
+id = "a65764dd2af4451fad7ffa8c6da003c7"
 
 [[env.production.durable_objects.bindings]]
 name = "CONVERSATION_DO"
