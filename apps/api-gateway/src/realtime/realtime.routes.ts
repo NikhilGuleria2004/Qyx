@@ -11,7 +11,7 @@ type RealtimeVariables = {
 
 const app = new Hono<{ Bindings: RealtimeBindings; Variables: RealtimeVariables }>();
 
-app.get('/v1/realtime', async (c) => {
+app.get('/', async (c) => {
   const url = new URL(c.req.url);
   const accessToken = url.searchParams.get('access_token');
 
