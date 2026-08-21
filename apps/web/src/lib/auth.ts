@@ -52,6 +52,8 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
         if (newToken) {
           const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
           res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+        } else {
+          clearSession();
         }
       } catch {
         clearSession();
@@ -65,6 +67,8 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
       if (newToken) {
         const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
         res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+      } else {
+        clearSession();
       }
     }
   }
