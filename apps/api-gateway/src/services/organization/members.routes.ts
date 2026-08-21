@@ -3,10 +3,11 @@ import { UserService } from '../users/user.service';
 import { CreateUserSchema, UpdateUserRoleSchema, UpdateUserStatusSchema } from '../users/user.schema';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { validate } from '../../middleware/validate';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
+import { getUserById, listUsersByOrg } from '../../db/queries/users';
 
 type MembersBindings = {
   PRIMARY_DB: D1Database;
@@ -27,8 +28,7 @@ const adminRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:read');
+app.get('/', auth, orgScope, requirePermission('members:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId') || (c.get('user') as { organization_id: string }).organization_id;
   const status = c.req.query('status');
   const service = new UserService(c.env.PRIMARY_DB);
@@ -36,8 +36,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json(users);
 });
 
-app.post('/', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
+app.post('/', auth, orgScope, requirePermission('members:write'), rbac, adminRateLimit, validate, async (c) => {
   const body = c.get('validatedBody') as { email: string; display_name: string; role: string; public_key?: string };
   const orgId = c.req.param('orgId') || (c.get('user') as { organization_id: string }).organization_id;
   const user = c.get('user') as { user_id: string };
@@ -64,12 +63,18 @@ app.post('/', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
   return c.json(newUser, 201);
 });
 
-app.patch('/:userId/role', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
+app.patch('/:userId/role', auth, orgScope, requirePermission('members:write'), rbac, adminRateLimit, async (c) => {
   const userId = c.req.param('userId')!;
-  const body = c.get('validatedBody') as { role: string };
-  const user = c.get('user') as { user_id: string; organization_id: string };
+  const body = await c.req.json<{ role: string }>();
+  const user = c.get('user') as { user_id: string; organization_id: string; role: string };
   
+  if (userId === user.user_id) {
+    return c.json(
+      { error: { code: 'FORBIDDEN', message: 'Cannot modify your own role', request_id: c.get('requestId') as string } },
+      403
+    );
+  }
+
   const parsed = UpdateUserRoleSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
@@ -78,8 +83,27 @@ app.patch('/:userId/role', auth, orgScope, rbac, adminRateLimit, validate, async
     );
   }
 
+  const targetUser = await getUserById(c.env.PRIMARY_DB, userId);
+  if (!targetUser || targetUser.organization_id !== user.organization_id) {
+    return c.json(
+      { error: { code: 'NOT_FOUND', message: 'User not found', request_id: c.get('requestId') as string } },
+      404
+    );
+  }
+
+  if (targetUser.role === 'super_admin' && parsed.data.role !== 'super_admin') {
+    const superAdmins = await listUsersByOrg(c.env.PRIMARY_DB, user.organization_id, 'active');
+    const activeSuperAdmins = superAdmins.filter((u) => u.role === 'super_admin');
+    if (activeSuperAdmins.length <= 1) {
+      return c.json(
+        { error: { code: 'FORBIDDEN', message: 'Cannot demote the last active super_admin', request_id: c.get('requestId') as string } },
+        403
+      );
+    }
+  }
+
   const service = new UserService(c.env.PRIMARY_DB);
-  await service.updateUserRole(userId, parsed.data.role);
+  await service.updateUserRole(user.organization_id, userId, parsed.data.role);
   
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -92,12 +116,18 @@ app.patch('/:userId/role', auth, orgScope, rbac, adminRateLimit, validate, async
   return c.json({ status: 'updated' });
 });
 
-app.patch('/:userId/status', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'members:write');
+app.patch('/:userId/status', auth, orgScope, requirePermission('members:write'), rbac, adminRateLimit, async (c) => {
   const userId = c.req.param('userId')!;
-  const body = c.get('validatedBody') as { status: string };
-  const user = c.get('user') as { user_id: string; organization_id: string };
+  const body = await c.req.json<{ status: string }>();
+  const user = c.get('user') as { user_id: string; organization_id: string; role: string };
   
+  if (userId === user.user_id) {
+    return c.json(
+      { error: { code: 'FORBIDDEN', message: 'Cannot modify your own status', request_id: c.get('requestId') as string } },
+      403
+    );
+  }
+
   const parsed = UpdateUserStatusSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
@@ -106,8 +136,27 @@ app.patch('/:userId/status', auth, orgScope, rbac, adminRateLimit, validate, asy
     );
   }
 
+  const targetUser = await getUserById(c.env.PRIMARY_DB, userId);
+  if (!targetUser || targetUser.organization_id !== user.organization_id) {
+    return c.json(
+      { error: { code: 'NOT_FOUND', message: 'User not found', request_id: c.get('requestId') as string } },
+      404
+    );
+  }
+
+  if (parsed.data.status === 'suspended' && targetUser.role === 'super_admin') {
+    const superAdmins = await listUsersByOrg(c.env.PRIMARY_DB, user.organization_id, 'active');
+    const activeSuperAdmins = superAdmins.filter((u) => u.role === 'super_admin');
+    if (activeSuperAdmins.length <= 1) {
+      return c.json(
+        { error: { code: 'FORBIDDEN', message: 'Cannot suspend the last active super_admin', request_id: c.get('requestId') as string } },
+        403
+      );
+    }
+  }
+
   const service = new UserService(c.env.PRIMARY_DB);
-  await service.updateUserStatus(userId, parsed.data.status);
+  await service.updateUserStatus(user.organization_id, userId, parsed.data.status);
   
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({

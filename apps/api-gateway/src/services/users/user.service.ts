@@ -38,11 +38,11 @@ export class UserService {
     };
   }
 
-  async updateUserRole(userId: string, role: string): Promise<void> {
-    await updateUserRole(this.db, userId, role);
+  async updateUserRole(orgId: string, userId: string, role: string): Promise<void> {
+    await updateUserRole(this.db, orgId, userId, role);
   }
 
-  async updateUserStatus(userId: string, status: string): Promise<void> {
-    await updateUserStatus(this.db, userId, status);
+  async updateUserStatus(orgId: string, userId: string, status: string): Promise<void> {
+    await updateUserStatus(this.db, orgId, userId, status);
   }
 }

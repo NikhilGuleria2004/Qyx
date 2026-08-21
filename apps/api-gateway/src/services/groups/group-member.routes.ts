@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { AuditService } from '../audit/audit.service';
 import { GroupMemberService } from './group-member.service';
 import { ApproveRequestSchema, RejectRequestSchema } from './group-member.schema';
@@ -17,8 +17,7 @@ type GroupMemberVariables = {
 
 const app = new Hono<{ Bindings: GroupMemberBindings; Variables: GroupMemberVariables }>();
 
-app.post('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:read');
+app.post('/', auth, orgScope, requirePermission('groups:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
 
@@ -36,8 +35,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'requested' }, 201);
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:read');
+app.get('/', auth, orgScope, requirePermission('groups:read'), rbac, async (c) => {
   const groupId = c.req.param('groupId')!;
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
@@ -46,8 +44,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json({ requests });
 });
 
-app.post('/:reqId/approve', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:write');
+app.post('/:reqId/approve', auth, orgScope, requirePermission('groups:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
   const reqId = c.req.param('reqId')!;
@@ -75,8 +72,7 @@ app.post('/:reqId/approve', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'approved', key_epoch: result.key_epoch });
 });
 
-app.post('/:reqId/reject', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:write');
+app.post('/:reqId/reject', auth, orgScope, requirePermission('groups:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
   const reqId = c.req.param('reqId')!;
@@ -103,8 +99,7 @@ app.post('/:reqId/reject', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'rejected' });
 });
 
-app.delete('/:userId', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'groups:write');
+app.delete('/:userId', auth, orgScope, requirePermission('groups:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
   const userId = c.req.param('userId')!;

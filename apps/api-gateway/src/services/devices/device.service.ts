@@ -63,7 +63,7 @@ export class DeviceService {
     const requestId = `req_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
     await createAuthorizationRequest(this.db, requestId, pendingDeviceId, '', payload);
 
-    await updateDeviceStatus(this.db, pendingDeviceId, 'active');
+    await updateDeviceStatus(this.db, deviceData.organization_id, pendingDeviceId, 'active');
 
     const updated = await getDeviceById(this.db, pendingDeviceId);
     return updated as unknown as Device;
@@ -94,7 +94,7 @@ export class DeviceService {
       throw new Error('Forbidden');
     }
 
-    await updateDeviceStatus(this.db, deviceId, 'revoked');
+    await updateDeviceStatus(this.db, deviceData.organization_id, deviceId, 'revoked');
   }
 
   async adminRevokeDevice(organizationId: string, deviceId: string): Promise<void> {
@@ -109,7 +109,7 @@ export class DeviceService {
       throw new Error('Forbidden: device belongs to another organization');
     }
 
-    await updateDeviceStatus(this.db, deviceId, 'revoked');
+    await updateDeviceStatus(this.db, organizationId, deviceId, 'revoked');
   }
 
   async getDevice(userId: string, deviceId: string): Promise<Device | null> {

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { AuditService } from '../audit/audit.service';
 import { ConversationService } from './conversation.service';
 import { CreateConversationSchema } from './conversation.schema';
@@ -48,8 +48,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
   return c.json(conversation, 201);
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'conversations:read');
+app.get('/', auth, orgScope, requirePermission('conversations:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
 
   const service = new ConversationService(c.env.PRIMARY_DB);

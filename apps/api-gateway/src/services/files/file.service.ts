@@ -101,7 +101,7 @@ export class FileService {
     };
   }
 
-  async completeUpload(fileId: string): Promise<File> {
+  async completeUpload(organizationId: string, fileId: string): Promise<File> {
     const file = await getFileById(this.db, fileId);
     const fileData = file as unknown as File | undefined;
 
@@ -109,17 +109,25 @@ export class FileService {
       throw new Error('File not found');
     }
 
-    await updateFileStatus(this.db, fileId, 'available');
+    if (fileData.organization_id !== organizationId) {
+      throw new Error('Forbidden: file belongs to another organization');
+    }
+
+    await updateFileStatus(this.db, organizationId, fileId, 'available');
 
     const updated = await getFileById(this.db, fileId);
     return updated as unknown as File;
   }
 
-  async getDownloadUrl(fileId: string): Promise<string | null> {
+  async getDownloadUrl(organizationId: string, fileId: string): Promise<string | null> {
     const file = await getFileById(this.db, fileId);
     const fileData = file as unknown as File | undefined;
 
     if (!fileData) {
+      return null;
+    }
+
+    if (fileData.organization_id !== organizationId) {
       return null;
     }
 

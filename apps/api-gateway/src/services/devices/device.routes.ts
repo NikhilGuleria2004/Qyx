@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { orgScope } from '../../middleware/orgScope';
 import { AuditService } from '../audit/audit.service';
 import { DeviceService } from './device.service';
@@ -44,8 +44,7 @@ app.post('/', auth, orgScope, rbac, async (c) => {
   return c.json(device, 201);
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:read');
+app.get('/', auth, orgScope, requirePermission('devices:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
 
   const service = new DeviceService(c.env.PRIMARY_DB);
@@ -54,8 +53,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json({ devices });
 });
 
-app.post('/resolve-pairing-code', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:read');
+app.post('/resolve-pairing-code', auth, orgScope, requirePermission('devices:read'), rbac, async (c) => {
   const body = await c.req.json();
   const parsed = ResolvePairingCodeSchema.safeParse(body);
 
@@ -87,8 +85,7 @@ app.post('/resolve-pairing-code', auth, orgScope, rbac, async (c) => {
   return c.json({ device });
 });
 
-app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:write');
+app.post('/:deviceId/authorize', auth, orgScope, requirePermission('devices:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const deviceId = c.req.param('deviceId');
 
@@ -140,8 +137,7 @@ app.post('/:deviceId/authorize', auth, orgScope, rbac, async (c) => {
   }
 });
 
-app.delete('/:deviceId', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:write');
+app.delete('/:deviceId', auth, orgScope, requirePermission('devices:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const deviceId = c.req.param('deviceId');
 

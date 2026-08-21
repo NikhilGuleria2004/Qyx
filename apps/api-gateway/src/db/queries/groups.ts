@@ -25,7 +25,7 @@ export async function createGroup(
   return result;
 }
 
-export async function deleteGroup(db: D1Database, groupId: string) {
-  const result = await db.prepare('DELETE FROM groups WHERE id = ?').bind(groupId).run();
+export async function deleteGroup(db: D1Database, orgId: string, groupId: string) {
+  const result = await db.prepare('DELETE FROM groups WHERE id = ? AND organization_id = ?').bind(groupId, orgId).run();
   return result;
 }

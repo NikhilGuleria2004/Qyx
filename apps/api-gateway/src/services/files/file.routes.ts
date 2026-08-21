@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { B2Storage, createB2Storage } from '@qyx/storage';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { MetricsService } from '../metrics/metrics.service';
@@ -42,8 +42,7 @@ function createStorage(c: { env: FileBindings }): B2Storage {
   });
 }
 
-app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'files:write');
+app.post('/upload-url', auth, orgScope, requirePermission('files:write'), rbac, fileRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
   const parsed = UploadUrlSchema.safeParse(body);
@@ -99,8 +98,7 @@ app.post('/upload-url', auth, orgScope, rbac, fileRateLimit, async (c) => {
   }
 });
 
-app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'files:write');
+app.post('/:fileId/complete', auth, orgScope, requirePermission('files:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
   const parsed = CompleteUploadSchema.safeParse(body);
@@ -115,7 +113,7 @@ app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
   const service = new FileService(c.env.PRIMARY_DB, createStorage(c));
 
   try {
-    const file = await service.completeUpload(parsed.data.file_id);
+    const file = await service.completeUpload(user.organization_id, parsed.data.file_id);
 
     const audit = new AuditService(c.env.PRIMARY_DB);
     await audit.log({
@@ -135,8 +133,7 @@ app.post('/:fileId/complete', auth, orgScope, rbac, async (c) => {
   }
 });
 
-app.get('/:fileId/download-url', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'files:read');
+app.get('/:fileId/download-url', auth, orgScope, requirePermission('files:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const fileId = c.req.param('fileId')!;
 
@@ -150,7 +147,7 @@ app.get('/:fileId/download-url', auth, orgScope, rbac, async (c) => {
     );
   }
 
-  const downloadUrl = await service.getDownloadUrl(fileId);
+  const downloadUrl = await service.getDownloadUrl(user.organization_id, fileId);
 
   const metricsService = new MetricsService(c.env.PRIMARY_DB);
   metricsService.recordEvent({

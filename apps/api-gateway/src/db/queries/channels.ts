@@ -25,8 +25,8 @@ export async function createChannel(
   return result;
 }
 
-export async function deleteChannel(db: D1Database, channelId: string) {
-  const result = await db.prepare('DELETE FROM channels WHERE id = ?').bind(channelId).run();
+export async function deleteChannel(db: D1Database, orgId: string, channelId: string) {
+  const result = await db.prepare('DELETE FROM channels WHERE id = ? AND organization_id = ?').bind(channelId, orgId).run();
   return result;
 }
 

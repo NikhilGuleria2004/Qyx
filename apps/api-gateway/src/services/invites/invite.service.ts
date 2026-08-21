@@ -50,11 +50,11 @@ export class InviteService {
     return results as Invite[];
   }
 
-  async acceptInvite(inviteId: string): Promise<void> {
-    await acceptInvite(this.db, inviteId);
+  async acceptInvite(orgId: string, inviteId: string): Promise<void> {
+    await acceptInvite(this.db, orgId, inviteId);
   }
 
-  async revokeInvite(inviteId: string): Promise<void> {
-    await revokeInvite(this.db, inviteId);
+  async revokeInvite(orgId: string, inviteId: string): Promise<void> {
+    await revokeInvite(this.db, orgId, inviteId);
   }
 }

@@ -27,13 +27,15 @@ export async function createFile(
   return result;
 }
 
-export async function updateFileStatus(db: D1Database, fileId: string, status: string) {
-  const result = await db.prepare('UPDATE files SET status = ? WHERE id = ?').bind(status, fileId).run();
+export async function updateFileStatus(db: D1Database, orgId: string, fileId: string, status: string) {
+  const result = await db.prepare('UPDATE files SET status = ? WHERE id = ? AND organization_id = ?').bind(status, fileId, orgId).run();
   return result;
 }
 
-export async function deleteFile(db: D1Database, fileId: string) {
-  const result = await db.prepare('DELETE FROM files WHERE id = ?').bind(fileId).run();
+export async function deleteFile(db: D1Database, fileId: string, orgId?: string) {
+  const query = orgId ? 'DELETE FROM files WHERE id = ? AND organization_id = ?' : 'DELETE FROM files WHERE id = ?';
+  const params = orgId ? [fileId, orgId] : [fileId];
+  const result = await db.prepare(query).bind(...params).run();
   return result;
 }
 

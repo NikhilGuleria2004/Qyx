@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth, optionalAuth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit, getClientIp } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { AuthService } from './auth.service';
@@ -208,8 +208,7 @@ app.post('/logout', auth, async (c) => {
   return c.json({ status: 'logged_out' });
 });
 
-app.get('/me', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+app.get('/me', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string };
   const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
   const me = await service.getMe(user.user_id);

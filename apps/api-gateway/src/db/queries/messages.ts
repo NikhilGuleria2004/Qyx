@@ -50,7 +50,7 @@ export async function createMessage(
   return result;
 }
 
-export async function updateMessageStatus(db: D1Database, messageId: string, status: string) {
-  const result = await db.prepare('UPDATE messages SET status = ? WHERE id = ?').bind(status, messageId).run();
+export async function updateMessageStatus(db: D1Database, orgId: string, messageId: string, status: string) {
+  const result = await db.prepare('UPDATE messages SET status = ? WHERE id = ? AND organization_id = ?').bind(status, messageId, orgId).run();
   return result;
 }

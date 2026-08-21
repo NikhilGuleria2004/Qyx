@@ -33,8 +33,8 @@ export class GroupService {
     return group as unknown as Group | null;
   }
 
-  async deleteGroup(groupId: string): Promise<void> {
-    await dbDeleteGroup(this.db, groupId);
+  async deleteGroup(organizationId: string, groupId: string): Promise<void> {
+    await dbDeleteGroup(this.db, organizationId, groupId);
   }
 
   async listMembers(groupId: string): Promise<GroupMember[]> {

@@ -317,7 +317,7 @@ describe('file service', () => {
     } as unknown as D1Database;
 
     const service = new FileService(db, createMockStorage());
-    const result = await service.completeUpload('file_1');
+    const result = await service.completeUpload('org_1', 'file_1');
     expect(result.status).toBe('available');
   });
 

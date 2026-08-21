@@ -5,14 +5,14 @@ const worker = app as { fetch: typeof app.fetch; scheduled: (event: ScheduledEve
 
 describe('api-gateway', () => {
   it('health endpoint returns ok', async () => {
-    const res = await worker.fetch(new Request('http://localhost/v1/health'));
+    const res = await worker.fetch(new Request('http://localhost/v1/health'), { env: { ALLOWED_ORIGIN: 'http://localhost' } });
     expect(res.status).toBe(200);
     const data = await res.json() as { status: string };
     expect(data.status).toBe('ok');
   });
 
   it('schema-test endpoint validates org via @qyx/schemas', async () => {
-    const res = await worker.fetch(new Request('http://localhost/v1/schema-test'));
+    const res = await worker.fetch(new Request('http://localhost/v1/schema-test'), { env: { ALLOWED_ORIGIN: 'http://localhost' } });
     expect(res.status).toBe(200);
     const data = await res.json() as { org_id: string };
     expect(data.org_id).toBe('org_test');

@@ -24,8 +24,8 @@ export class ChannelService {
     return channel as unknown as Channel | null;
   }
 
-  async deleteChannel(channelId: string): Promise<void> {
-    await dbDeleteChannel(this.db, channelId);
+  async deleteChannel(organizationId: string, channelId: string): Promise<void> {
+    await dbDeleteChannel(this.db, organizationId, channelId);
   }
 
   async requestToJoin(channelId: string, userId: string): Promise<void> {

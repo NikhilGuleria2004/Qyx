@@ -135,20 +135,20 @@ describe('P42 — Org-isolation regression suite', () => {
     });
   }
 
-  it('cross-org group access currently returns 200 (service-layer org check not mocked)', async () => {
+  it('blocks cross-org group access', async () => {
     const res = await app.request('/v1/groups/grp_bbbbbbbbbbbbbbbb', {
       method: 'DELETE',
       headers: { Authorization: `Bearer token_${userA.user_id}` },
     }, env);
-    expect(res.status).toBe(200);
+    expect([403, 404]).toContain(res.status);
   });
 
-  it('cross-org channel access currently returns 200 (service-layer org check not mocked)', async () => {
+  it('blocks cross-org channel access', async () => {
     const res = await app.request('/v1/channels/chn_bbbbbbbbbbbbbbbb', {
       method: 'DELETE',
       headers: { Authorization: `Bearer token_${userA.user_id}` },
     }, env);
-    expect(res.status).toBe(200);
+    expect([403, 404]).toContain(res.status);
   });
 
   it('blocks cross-org message access', async () => {

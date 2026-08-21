@@ -25,7 +25,7 @@ export class AuthService {
       }
       organizationId = invite.organization_id;
       role = invite.role;
-      await inviteService.acceptInvite(invite.id);
+      await inviteService.acceptInvite(invite.organization_id, invite.id);
     } else {
       const existingOrg = await getOrganizationByName(this.db, data.organization_name);
       if (existingOrg) {

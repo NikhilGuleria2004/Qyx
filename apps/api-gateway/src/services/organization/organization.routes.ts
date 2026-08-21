@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth, requireSuperAdmin } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { validate } from '../../middleware/validate';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
@@ -55,7 +55,7 @@ app.post('/', auth, requireSuperAdmin, async (c) => {
   return c.json(org, 201);
 });
 
-app.get('/:orgId', auth, orgScope, rbac, async (c) => {
+app.get('/:orgId', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const service = new OrganizationService(c.env.PRIMARY_DB);
   const org = await service.getOrganization(orgId);
@@ -67,12 +67,10 @@ app.get('/:orgId', auth, orgScope, rbac, async (c) => {
     );
   }
 
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
   return c.json(org);
 });
 
-app.post('/:orgId/domains', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.post('/:orgId/domains', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, validate, async (c) => {
   const body = (c as unknown as { get: (key: string) => unknown }).get('validatedBody') as { domain: string };
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string };
@@ -99,8 +97,7 @@ app.post('/:orgId/domains', auth, orgScope, rbac, adminRateLimit, validate, asyn
   return c.json(domain, 201);
 });
 
-app.get('/:orgId/domains', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+app.get('/:orgId/domains', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const service = new OrganizationService(c.env.PRIMARY_DB);
   const domains = await service.listDomains(orgId);
@@ -114,8 +111,7 @@ app.get('/:orgId/domains', auth, orgScope, rbac, async (c) => {
   return c.json({ domains: safeDomains });
 });
 
-app.post('/:orgId/domains/:domainId/verify', auth, orgScope, rbac, adminRateLimit, validate, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.post('/:orgId/domains/:domainId/verify', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, validate, async (c) => {
   const body = (c as unknown as { get: (key: string) => unknown }).get('validatedBody') as { txt_record: string };
   const orgId = c.req.param('orgId')!;
   const domainId = c.req.param('domainId')!;
@@ -143,8 +139,7 @@ app.post('/:orgId/domains/:domainId/verify', auth, orgScope, rbac, adminRateLimi
   return c.json(domain);
 });
 
-app.get('/:orgId/settings', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+app.get('/:orgId/settings', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   
   const policy = await c.env.PRIMARY_DB.prepare('SELECT * FROM org_security_policy WHERE organization_id = ?').bind(orgId).first();
@@ -152,8 +147,7 @@ app.get('/:orgId/settings', auth, orgScope, rbac, async (c) => {
   return c.json({ org_id: orgId, policy });
 });
 
-app.get('/:orgId/security-summary', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:read');
+app.get('/:orgId/security-summary', auth, orgScope, requirePermission('security:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const totalUsersResult = await c.env.PRIMARY_DB.prepare('SELECT COUNT(*) as count FROM users WHERE organization_id = ?').bind(orgId).first();
@@ -198,8 +192,7 @@ app.get('/:orgId/security-summary', auth, orgScope, rbac, async (c) => {
   });
 });
 
-app.get('/:orgId/metrics', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:read');
+app.get('/:orgId/metrics', auth, orgScope, requirePermission('security:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const type = c.req.query('type') || 'security';
 
@@ -238,8 +231,7 @@ app.get('/:orgId/metrics', auth, orgScope, rbac, async (c) => {
   return c.json({ metrics: securityMetrics });
 });
 
-app.get('/:orgId/audit', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'audit:read');
+app.get('/:orgId/audit', auth, orgScope, requirePermission('audit:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const eventType = c.req.query('event_type');
   const actorId = c.req.query('actor_id');
@@ -261,8 +253,7 @@ app.get('/:orgId/audit', auth, orgScope, rbac, async (c) => {
   });
 });
 
-app.get('/:orgId/devices', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:read');
+app.get('/:orgId/devices', auth, orgScope, requirePermission('devices:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const { DeviceService } = await import('../devices/device.service');
@@ -283,8 +274,7 @@ app.get('/:orgId/devices', auth, orgScope, rbac, async (c) => {
   return c.json({ devices: safeDevices });
 });
 
-app.post('/:orgId/devices/:deviceId/revoke', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:write');
+app.post('/:orgId/devices/:deviceId/revoke', auth, orgScope, requirePermission('devices:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const deviceId = c.req.param('deviceId')!;
   const user = c.get('user') as { user_id: string; organization_id: string };
@@ -314,8 +304,7 @@ app.post('/:orgId/devices/:deviceId/revoke', auth, orgScope, rbac, adminRateLimi
   return c.json({ status: 'revoked' });
 });
 
-app.get('/:orgId/sessions', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:read');
+app.get('/:orgId/sessions', auth, orgScope, requirePermission('devices:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const sessions = await c.env.PRIMARY_DB.prepare(
@@ -325,8 +314,7 @@ app.get('/:orgId/sessions', auth, orgScope, rbac, async (c) => {
   return c.json({ sessions: sessions.results });
 });
 
-app.post('/:orgId/sessions/:sessionId/revoke', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'devices:write');
+app.post('/:orgId/sessions/:sessionId/revoke', auth, orgScope, requirePermission('devices:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const sessionId = c.req.param('sessionId')!;
   const user = c.get('user') as { user_id: string; organization_id: string };
@@ -354,8 +342,7 @@ app.post('/:orgId/sessions/:sessionId/revoke', auth, orgScope, rbac, adminRateLi
   return c.json({ status: 'revoked' });
 });
 
-app.patch('/:orgId/settings', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.patch('/:orgId/settings', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string };
   const body = await c.req.json();

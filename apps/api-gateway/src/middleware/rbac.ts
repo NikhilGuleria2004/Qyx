@@ -29,6 +29,20 @@ function hasRoleLevel(role: string, minimumRole: string): boolean {
   return (ROLE_HIERARCHY[role] || 0) >= (ROLE_HIERARCHY[minimumRole] || 0);
 }
 
+export function requirePermission(permission: string) {
+  return async (c: Context, next: () => Promise<void>) => {
+    (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', permission);
+    await next();
+  };
+}
+
+export function requireMinimumRole(role: string) {
+  return async (c: Context, next: () => Promise<void>) => {
+    (c as unknown as { set: (key: string, value: unknown) => void }).set('minimumRole', role);
+    await next();
+  };
+}
+
 export async function rbac(c: Context, next: () => Promise<void>) {
   const requestId = c.get('requestId') as string;
   const logger = createLogger(requestId);

@@ -31,12 +31,12 @@ export async function createUser(db: D1Database, id: string, organizationId: str
   return result;
 }
 
-export async function updateUserRole(db: D1Database, userId: string, role: string) {
-  const result = await db.prepare('UPDATE users SET role = ? WHERE id = ?').bind(role, userId).run();
+export async function updateUserRole(db: D1Database, orgId: string, userId: string, role: string) {
+  const result = await db.prepare('UPDATE users SET role = ? WHERE id = ? AND organization_id = ?').bind(role, userId, orgId).run();
   return result;
 }
 
-export async function updateUserStatus(db: D1Database, userId: string, status: string) {
-  const result = await db.prepare('UPDATE users SET status = ? WHERE id = ?').bind(status, userId).run();
+export async function updateUserStatus(db: D1Database, orgId: string, userId: string, status: string) {
+  const result = await db.prepare('UPDATE users SET status = ? WHERE id = ? AND organization_id = ?').bind(status, userId, orgId).run();
   return result;
 }

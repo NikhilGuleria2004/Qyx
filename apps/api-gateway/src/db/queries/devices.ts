@@ -28,12 +28,12 @@ export async function createDevice(
   return result;
 }
 
-export async function updateDeviceStatus(db: D1Database, deviceId: string, status: string) {
-  const result = await db.prepare('UPDATE devices SET status = ? WHERE id = ?').bind(status, deviceId).run();
+export async function updateDeviceStatus(db: D1Database, orgId: string, deviceId: string, status: string) {
+  const result = await db.prepare('UPDATE devices SET status = ? WHERE id = ? AND organization_id = ?').bind(status, deviceId, orgId).run();
   return result;
 }
 
-export async function deleteDevice(db: D1Database, deviceId: string) {
-  const result = await db.prepare('DELETE FROM devices WHERE id = ?').bind(deviceId).run();
+export async function deleteDevice(db: D1Database, orgId: string, deviceId: string) {
+  const result = await db.prepare('DELETE FROM devices WHERE id = ? AND organization_id = ?').bind(deviceId, orgId).run();
   return result;
 }

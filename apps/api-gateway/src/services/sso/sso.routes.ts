@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth, optionalAuth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { MetricsService } from '../metrics/metrics.service';
@@ -169,8 +169,7 @@ app.get('/:provider/callback', optionalAuth, async (c) => {
 });
 
 
-app.post('/:orgId/providers', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.post('/:orgId/providers', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string };
   const body = await c.req.json();
@@ -197,8 +196,7 @@ app.post('/:orgId/providers', auth, orgScope, rbac, adminRateLimit, async (c) =>
   return c.json(provider, 201);
 });
 
-app.get('/:orgId/providers', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+app.get('/:orgId/providers', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
@@ -223,8 +221,7 @@ app.get('/:orgId/providers', auth, orgScope, rbac, async (c) => {
   return c.json({ providers: safeProviders });
 });
 
-app.patch('/:orgId/providers/:providerId', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.patch('/:orgId/providers/:providerId', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const providerId = c.req.param('providerId')!;
   const user = c.get('user') as { user_id: string };
@@ -259,8 +256,7 @@ app.patch('/:orgId/providers/:providerId', auth, orgScope, rbac, adminRateLimit,
   return c.json(provider);
 });
 
-app.delete('/:orgId/providers/:providerId', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.delete('/:orgId/providers/:providerId', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const providerId = c.req.param('providerId')!;
   const user = c.get('user') as { user_id: string };

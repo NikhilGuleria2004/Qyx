@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { ChannelService } from './channel.service';
@@ -25,8 +25,7 @@ const adminRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
-app.post('/', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.post('/', auth, orgScope, requirePermission('channels:write'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
   const parsed = CreateChannelSchema.safeParse(body);
@@ -52,8 +51,7 @@ app.post('/', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json(channel, 201);
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+app.get('/', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
 
   const service = new ChannelService(c.env.PRIMARY_DB);
@@ -62,8 +60,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json({ channels });
 });
 
-app.delete('/:channelId', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.delete('/:channelId', auth, orgScope, requirePermission('channels:write'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId');
 
@@ -77,14 +74,14 @@ app.delete('/:channelId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   const service = new ChannelService(c.env.PRIMARY_DB);
   const channel = await service.getChannel(channelId);
 
-  if (!channel) {
+  if (!channel || (channel as { organization_id: string }).organization_id !== user.organization_id) {
     return c.json(
       { error: { code: 'NOT_FOUND', message: 'Channel not found', request_id: c.get('requestId') as string } },
       404
     );
   }
 
-  await service.deleteChannel(channelId);
+  await service.deleteChannel(user.organization_id, channelId);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -97,8 +94,7 @@ app.delete('/:channelId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json({ status: 'deleted' });
 });
 
-app.get('/:channelId/members', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+app.get('/:channelId/members', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
@@ -107,8 +103,7 @@ app.get('/:channelId/members', auth, orgScope, rbac, async (c) => {
   return c.json({ members });
 });
 
-app.delete('/:channelId/members/:userId', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.delete('/:channelId/members/:userId', auth, orgScope, requirePermission('channels:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
   const userId = c.req.param('userId')!;
@@ -127,8 +122,7 @@ app.delete('/:channelId/members/:userId', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'removed' });
 });
 
-app.post('/:channelId/requests', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+app.post('/:channelId/requests', auth, orgScope, requirePermission('channels:read'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
 
@@ -146,8 +140,7 @@ app.post('/:channelId/requests', auth, orgScope, rbac, adminRateLimit, async (c)
   return c.json({ status: 'requested' }, 201);
 });
 
-app.get('/:channelId/requests', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+app.get('/:channelId/requests', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
@@ -156,8 +149,7 @@ app.get('/:channelId/requests', auth, orgScope, rbac, async (c) => {
   return c.json({ requests });
 });
 
-app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.post('/:channelId/requests/:reqId/approve', auth, orgScope, requirePermission('channels:write'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
   const reqId = c.req.param('reqId')!;
@@ -185,8 +177,7 @@ app.post('/:channelId/requests/:reqId/approve', auth, orgScope, rbac, adminRateL
   return c.json({ status: 'approved', can_post: result.can_post });
 });
 
-app.post('/:channelId/requests/:reqId/reject', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.post('/:channelId/requests/:reqId/reject', auth, orgScope, requirePermission('channels:write'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
   const reqId = c.req.param('reqId')!;
@@ -205,8 +196,7 @@ app.post('/:channelId/requests/:reqId/reject', auth, orgScope, rbac, adminRateLi
   return c.json({ status: 'rejected' });
 });
 
-app.post('/:channelId/posts/:postId/ack', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:read');
+app.post('/:channelId/posts/:postId/ack', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
   const postId = c.req.param('postId')!;
@@ -226,8 +216,7 @@ app.post('/:channelId/posts/:postId/ack', auth, orgScope, rbac, async (c) => {
   return c.json({ status: 'acknowledged' });
 });
 
-app.post('/:channelId/posts', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'channels:write');
+app.post('/:channelId/posts', auth, orgScope, requirePermission('channels:write'), rbac, adminRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
 

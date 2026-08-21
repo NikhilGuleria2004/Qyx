@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { AlertsService } from './alerts.service';
@@ -25,8 +25,7 @@ const adminRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
-app.get('/', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:read');
+app.get('/', auth, orgScope, requirePermission('security:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const service = new AlertsService(c.env.PRIMARY_DB);
@@ -36,8 +35,7 @@ app.get('/', auth, orgScope, rbac, async (c) => {
   return c.json({ rules, summary });
 });
 
-app.post('/', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:write');
+app.post('/', auth, orgScope, requirePermission('security:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string };
   const body = await c.req.json();
@@ -67,8 +65,7 @@ app.post('/', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json(rule, 201);
 });
 
-app.patch('/:ruleId', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:write');
+app.patch('/:ruleId', auth, orgScope, requirePermission('security:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const ruleId = c.req.param('ruleId')!;
   const user = c.get('user') as { user_id: string };
@@ -103,8 +100,7 @@ app.patch('/:ruleId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json(rule);
 });
 
-app.delete('/:ruleId', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:write');
+app.delete('/:ruleId', auth, orgScope, requirePermission('security:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const ruleId = c.req.param('ruleId')!;
   const user = c.get('user') as { user_id: string };
@@ -123,8 +119,7 @@ app.delete('/:ruleId', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json({ status: 'deleted' });
 });
 
-app.get('/:ruleId/events', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:read');
+app.get('/:ruleId/events', auth, orgScope, requirePermission('security:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const ruleId = c.req.param('ruleId')!;
 
@@ -134,8 +129,7 @@ app.get('/:ruleId/events', auth, orgScope, rbac, async (c) => {
   return c.json({ events });
 });
 
-app.post('/evaluate', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'security:write');
+app.post('/evaluate', auth, orgScope, requirePermission('security:write'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string };
 

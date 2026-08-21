@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { InviteService } from './invite.service';
@@ -24,8 +24,7 @@ const adminRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
-app.post('/:orgId/invites', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.post('/:orgId/invites', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
   const user = c.get('user') as { user_id: string; organization_id: string; role: string };
   const body = await c.req.json<{ email?: string; role?: string; ttl_days?: number }>();
@@ -48,8 +47,7 @@ app.post('/:orgId/invites', auth, orgScope, rbac, adminRateLimit, async (c) => {
   return c.json(invite, 201);
 });
 
-app.get('/:orgId/invites', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:read');
+app.get('/:orgId/invites', auth, orgScope, requirePermission('org:read'), rbac, adminRateLimit, async (c) => {
   const orgId = c.req.param('orgId')!;
 
   const service = new InviteService(c.env.PRIMARY_DB);
@@ -162,13 +160,12 @@ app.post('/accept', async (c) => {
   });
 });
 
-app.post('/:inviteId/revoke', auth, orgScope, rbac, adminRateLimit, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'org:update');
+app.post('/:inviteId/revoke', auth, orgScope, requirePermission('org:update'), rbac, adminRateLimit, async (c) => {
   const inviteId = c.req.param('inviteId')!;
   const user = c.get('user') as { user_id: string; organization_id: string };
 
   const service = new InviteService(c.env.PRIMARY_DB);
-  await service.revokeInvite(inviteId);
+  await service.revokeInvite(user.organization_id, inviteId);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({

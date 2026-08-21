@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { auth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
-import { rbac } from '../../middleware/rbac';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit } from '../../middleware/rateLimit';
 import { AuditService } from '../audit/audit.service';
 import { MetricsService } from '../metrics/metrics.service';
@@ -97,8 +97,7 @@ app.post('/:conversationId/messages', auth, orgScope, rbac, messageRateLimit, as
   return c.json(result, 201);
 });
 
-app.get('/:conversationId/messages', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'messages:read');
+app.get('/:conversationId/messages', auth, orgScope, requirePermission('messages:read'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const conversationId = c.req.param('conversationId')!;
 
@@ -108,8 +107,7 @@ app.get('/:conversationId/messages', auth, orgScope, rbac, async (c) => {
   return c.json({ messages });
 });
 
-app.get('/:conversationId/keys', auth, orgScope, rbac, async (c) => {
-  (c as unknown as { set: (key: string, value: unknown) => void }).set('permission', 'messages:read');
+app.get('/:conversationId/keys', auth, orgScope, requirePermission('messages:read'), rbac, async (c) => {
   const conversationId = c.req.param('conversationId')!;
 
   const members = await c.env.PRIMARY_DB.prepare(

@@ -22,10 +22,10 @@ export async function getInvitesByOrg(db: D1Database, organizationId: string) {
   return (result.results || []) as Array<{ id: string; organization_id: string; email: string | null; code: string; role: string; status: string; created_at: number; expires_at: number }>;
 }
 
-export async function acceptInvite(db: D1Database, inviteId: string) {
-  await db.prepare('UPDATE invites SET status = ? WHERE id = ?').bind('accepted', inviteId).run();
+export async function acceptInvite(db: D1Database, orgId: string, inviteId: string) {
+  await db.prepare('UPDATE invites SET status = ? WHERE id = ? AND organization_id = ?').bind('accepted', inviteId, orgId).run();
 }
 
-export async function revokeInvite(db: D1Database, inviteId: string) {
-  await db.prepare('UPDATE invites SET status = ? WHERE id = ?').bind('revoked', inviteId).run();
+export async function revokeInvite(db: D1Database, orgId: string, inviteId: string) {
+  await db.prepare('UPDATE invites SET status = ? WHERE id = ? AND organization_id = ?').bind('revoked', inviteId, orgId).run();
 }

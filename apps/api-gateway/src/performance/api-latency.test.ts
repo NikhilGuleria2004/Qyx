@@ -21,7 +21,7 @@ type Env = {
   AUDIT_QUEUE: Queue;
 };
 
-const user = { user_id: 'usr_perf', organization_id: 'org_perf', role: 'admin' };
+const user = { user_id: 'usr_perf', organization_id: 'org_perf', role: 'employee' };
 
 function createMockEnv(): Env {
   return {
