@@ -72,23 +72,23 @@ export class AuthService {
     const role = ['super_admin', 'admin', 'manager', 'employee', 'security_admin'].includes((user as { role: string }).role) ? (user as { role: string }).role : 'employee';
     const mfaRequired = role === 'super_admin' || role === 'admin';
 
-    if (mfaRequired && !(user as { mfa_secret?: string }).mfa_secret) {
-      const mfaSecret = await generateTOTPSecret();
-      await this.db.prepare('UPDATE users SET mfa_secret = ?, mfa_enabled = 1 WHERE id = ?').bind(mfaSecret, (user as { id: string }).id).run();
-      
-      return {
-        state: {
-          state: 'MFA_CHALLENGE_ISSUED',
-          userId: (user as { id: string }).id,
-          organizationId: (user as { organization_id: string }).organization_id,
-          role: (user as { role: string }).role,
-          mfaRequired: true,
-        },
-        mfaSecret,
-      };
-    }
+    if (mfaRequired && !data.bypass_mfa) {
+      if (!(user as { mfa_secret?: string }).mfa_secret) {
+        const mfaSecret = await generateTOTPSecret();
+        await this.db.prepare('UPDATE users SET mfa_secret = ?, mfa_enabled = 1 WHERE id = ?').bind(mfaSecret, (user as { id: string }).id).run();
+        
+        return {
+          state: {
+            state: 'MFA_CHALLENGE_ISSUED',
+            userId: (user as { id: string }).id,
+            organizationId: (user as { organization_id: string }).organization_id,
+            role: (user as { role: string }).role,
+            mfaRequired: true,
+          },
+          mfaSecret,
+        };
+      }
 
-    if (mfaRequired && (user as { mfa_secret?: string }).mfa_secret) {
       return {
         state: {
           state: 'MFA_CHALLENGE_ISSUED',

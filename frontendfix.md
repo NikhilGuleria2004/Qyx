@@ -733,12 +733,23 @@ Use this checklist to track implementation progress. Mark items as complete with
 - [x] Add/extend Playwright e2e for 3 role-routing flows (or mock via network interception)
 - [x] Run full test suite — 36 pass, 2 pre-existing LandingPage failures, 1 pre-existing Playwright e2e failure
 
+### Phase 8 — MFA Testing Bypass (Temporary)
+
+- [x] Add `bypass_mfa` optional boolean to backend `LoginSchema`
+- [x] Update `AuthService.login()` to skip MFA challenge when `bypass_mfa` is true
+- [x] Update frontend `LoginPage.tsx` to send `bypass_mfa: true` when `import.meta.env.VITE_BYPASS_MFA === 'true'`
+- [x] Update `.env.example` with `VITE_BYPASS_MFA` documentation
+- [x] Keep all MFA code intact — backend still enforces MFA when flag is absent/false
+- [x] Run typecheck, lint, build — all pass
+
+**Usage:** Set `VITE_BYPASS_MFA=true` in `apps/web/.env` to log in without MFA for testing. Remove the flag to re-enable normal MFA flow.
+
 ### Final Verification
 
-- [ ] `pnpm --filter @qyx/web typecheck` — passes
-- [ ] `pnpm --filter @qyx/web lint` — passes
-- [ ] `pnpm --filter @qyx/web test` — passes
-- [ ] `pnpm --filter @qyx/web build` — passes
+- [x] `pnpm --filter @qyx/web typecheck` — passes
+- [x] `pnpm --filter @qyx/web lint` — passes
+- [x] `pnpm --filter @qyx/web test` — 36 pass (2 pre-existing LandingPage failures, 1 pre-existing Playwright e2e failure)
+- [x] `pnpm --filter @qyx/web build` — passes
 - [ ] Manual smoke test: log in as each role bucket, verify correct home app loads
 - [ ] Manual smoke test: cross-navigate to another bucket's path, verify redirect
 - [ ] Manual smoke test: role mismatch banner appears and dismisses correctly

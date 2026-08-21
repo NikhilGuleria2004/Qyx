@@ -14,6 +14,7 @@ export const LoginSchema = z.object({
   password: z.string().min(1),
   device_name: z.string().min(1).max(255),
   platform: z.enum(['web', 'ios', 'android', 'desktop']).optional(),
+  bypass_mfa: z.boolean().optional(),
 });
 
 export const MfaVerifySchema = z.object({

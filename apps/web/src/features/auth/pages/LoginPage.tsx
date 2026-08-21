@@ -27,7 +27,7 @@ interface LocationState {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState({ email: '', password: '', device_name: 'web-browser' });
+  const [form, setForm] = useState({ email: '', password: '', device_name: 'web-browser', bypass_mfa: false });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [ssoOrgId, setSsoOrgId] = useState('');
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [roleMismatch, setRoleMismatch] = useState<{ selected: RoleBucket; actual: RoleBucket } | null>(
     (location.state as LocationState | null)?.roleMismatch || null
   );
+  const bypassMfa = import.meta.env.VITE_BYPASS_MFA === 'true';
 
   function update(key: string) {
     return (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -46,10 +47,11 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      const body = { ...form, bypass_mfa: bypassMfa };
       const res = await fetch(apiUrl('/v1/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const data = (await res.json()) as LoginResponse & ApiErrorShape;
       if (!res.ok) {
