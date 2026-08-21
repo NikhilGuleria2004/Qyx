@@ -56,12 +56,16 @@ app.get('/', async (c) => {
     broadcastPresence(session.user_id, 'offline');
   });
 
-  server.addEventListener('error', () => {
+  server.accept();
+
+  server.addEventListener('message', (event) => {
+    handleFrame(connection, event.data);
+  });
+
+  server.addEventListener('close', () => {
     removeConnection(connection);
     broadcastPresence(session.user_id, 'offline');
   });
-
-  server.accept();
 
   return new Response(null, { status: 101, webSocket: client });
 });

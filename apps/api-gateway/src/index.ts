@@ -43,6 +43,9 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.use('*', (c, next) => {
+  if (c.req.header('upgrade')?.toLowerCase() === 'websocket') {
+    return next();
+  }
   const corsMiddleware = cors({
     origin: (c.env.ALLOWED_ORIGIN || 'https://qyx.pages.dev').split(','),
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
