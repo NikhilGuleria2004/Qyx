@@ -15,6 +15,8 @@ export function useRealtime(onMessage: MessageHandler) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
 
   const connect = useCallback(() => {
     const token = getAccessToken();
@@ -38,7 +40,7 @@ export function useRealtime(onMessage: MessageHandler) {
         try {
           const frame = JSON.parse(event.data) as ServerFrame;
           if (frame.type === 'message') {
-            onMessage(frame);
+            onMessageRef.current(frame);
           }
         } catch {
           // ignore invalid frames
@@ -56,7 +58,7 @@ export function useRealtime(onMessage: MessageHandler) {
     } catch {
       // WebSocket not supported or connection failed
     }
-  }, [onMessage]);
+  }, []);
 
   useEffect(() => {
     connect();
