@@ -39,6 +39,8 @@ app.get('/', async (c) => {
 
   server.accept();
 
+  server.accept();
+
   const connection = {
     userId: session.user_id,
     organizationId: session.organization_id,
