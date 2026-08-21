@@ -37,6 +37,8 @@ app.get('/', async (c) => {
   const webSocketPair = new WebSocketPair();
   const [client, server] = Object.values(webSocketPair);
 
+  server.accept();
+
   const connection = {
     userId: session.user_id,
     organizationId: session.organization_id,
@@ -46,17 +48,6 @@ app.get('/', async (c) => {
 
   addConnection(connection);
   broadcastPresence(session.user_id, 'online');
-
-  server.addEventListener('message', (event) => {
-    handleFrame(connection, event.data);
-  });
-
-  server.addEventListener('close', () => {
-    removeConnection(connection);
-    broadcastPresence(session.user_id, 'offline');
-  });
-
-  server.accept();
 
   server.addEventListener('message', (event) => {
     handleFrame(connection, event.data);
