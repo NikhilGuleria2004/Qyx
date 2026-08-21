@@ -61,6 +61,8 @@ app.get('/', async (c) => {
     broadcastPresence(session.user_id, 'offline');
   });
 
+  server.accept();
+
   return new Response(null, { status: 101, webSocket: client });
 });
 
