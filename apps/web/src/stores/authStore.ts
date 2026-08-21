@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiUrl } from '../lib/config';
+import { bucketOf, type RoleBucket } from '../lib/roles';
 
 export interface AuthState {
   user: { id: string; email: string; name: string; role: string; orgId: string } | null;
   accessToken: string | null;
   refreshToken: string | null;
   mfaRequired: boolean;
+  roleBucket: RoleBucket | null;
+  meVerifiedAt: number | null;
   setUser: (user: AuthState['user']) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setMfaRequired: (required: boolean) => void;
@@ -21,7 +24,9 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       mfaRequired: false,
-      setUser: (user) => set({ user }),
+      roleBucket: null,
+      meVerifiedAt: null,
+      setUser: (user) => set({ user, roleBucket: user ? bucketOf(user.role) : null }),
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setMfaRequired: (mfaRequired) => set({ mfaRequired }),
       refreshAccessToken: async () => {
@@ -49,11 +54,11 @@ export const useAuthStore = create<AuthState>()(
           return null;
         }
       },
-      logout: () => set({ user: null, accessToken: null, refreshToken: null, mfaRequired: false }),
+      logout: () => set({ user: null, accessToken: null, refreshToken: null, mfaRequired: false, roleBucket: null, meVerifiedAt: null }),
     }),
     {
       name: 'qyx-auth',
-      partialize: (state) => ({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken }),
+      partialize: (state) => ({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken, roleBucket: state.roleBucket }),
     }
   )
 );

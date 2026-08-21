@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
 import { setSession } from '../../../lib/auth';
 import { apiUrl } from '../../../lib/config';
+import { bucketOf, ROLE_HOME_PATH } from '../../../lib/roles';
 
 interface ApiErrorShape {
   error?: { code?: string; message?: string };
@@ -40,6 +41,11 @@ export default function RegisterPage() {
           setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         }
         navigate('/onboarding?flow=create');
+        return;
+      }
+      if (data.user?.role) {
+        const bucket = bucketOf(data.user.role);
+        navigate(ROLE_HOME_PATH[bucket]);
         return;
       }
       navigate('/login');

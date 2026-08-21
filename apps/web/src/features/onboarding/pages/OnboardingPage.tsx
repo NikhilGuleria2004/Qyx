@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
 import { useAuthStore, type AuthState } from '../../../stores/authStore';
 import { listDomains, addDomain, verifyDomain, createInvite, listInvites, acceptInvite, lookupInvites } from '../../../features/admin/api/adminApi';
+import { ROLE_HOME_PATH, bucketOf } from '../../../lib/roles';
 
 type Flow = 'create' | 'join';
 
@@ -100,6 +101,11 @@ export default function OnboardingPage() {
       setDomains((prev) => prev.map((d) => d.id === res.id ? { ...d, verified: res.verified } : d));
       setVerifyDomainId('');
       setTxtRecord('');
+      if (res.verified) {
+        const bucket = bucketOf(user?.role);
+        navigate(ROLE_HOME_PATH[bucket]);
+        return;
+      }
       setSuccess(res.verified ? 'Domain verified' : 'Domain verification failed');
     } catch {
       setError('Failed to verify domain');

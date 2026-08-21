@@ -1,5 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 import { apiUrl } from './config';
+import { bucketOf, type RoleBucket } from './roles';
 
 export function getAccessToken(): string | null {
   return useAuthStore.getState().accessToken;
@@ -82,6 +83,21 @@ export async function getMe(): Promise<{ id: string; email: string; display_name
   const data = await res.json();
   if (data.error) return null;
   return data;
+}
+
+export async function verifyRole(): Promise<RoleBucket | null> {
+  const me = await getMe();
+  if (!me) return null;
+  const bucket = bucketOf(me.role);
+  useAuthStore.getState().setUser({
+    id: me.id,
+    email: me.email,
+    name: me.display_name,
+    role: me.role,
+    orgId: me.organization_id,
+  });
+  useAuthStore.setState({ meVerifiedAt: Date.now() });
+  return bucket;
 }
 
 export async function refreshAccessToken(): Promise<string | null> {

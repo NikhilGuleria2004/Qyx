@@ -7,3 +7,4 @@ export * from './components/popover';
 export * from './components/command';
 export * from './components/dropdown';
 export * from './components/toast';
+export * from './components/segmented-control';

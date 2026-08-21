@@ -38,4 +38,22 @@ describe('LoginPage', () => {
     expect(html).toContain('<form');
     expect(html).toContain('Sign in to your workspace');
   });
+
+  it('renders three role selector options', () => {
+    const html = renderLogin();
+    expect(html).toContain('Super Admin');
+    expect(html).toContain('Admin');
+    expect(html).toContain('Employee');
+  });
+
+  it('has Employee selected by default', () => {
+    const html = renderLogin();
+    expect(html).toContain('Employee');
+    expect(html).toContain('aria-selected="true"');
+  });
+
+  it('does not render Manager role option', () => {
+    const html = renderLogin();
+    expect(html).not.toContain('Manager');
+  });
 });

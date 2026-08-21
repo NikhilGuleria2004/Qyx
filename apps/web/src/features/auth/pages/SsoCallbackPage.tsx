@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { setSession } from '../../../lib/auth';
 import { apiUrl } from '../../../lib/config';
+import { ROLE_HOME_PATH, bucketOf } from '../../../lib/roles';
 
 interface SsoCallbackResponse {
   access_token: string;
@@ -59,7 +60,8 @@ export default function SsoCallbackPage() {
         }
         if (data.access_token && data.refresh_token && data.user) {
           setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role, email: data.user.email, display_name: data.user.display_name });
-          navigate('/app', { replace: true });
+          const bucket = bucketOf(data.user.role);
+          navigate(ROLE_HOME_PATH[bucket], { replace: true });
           return;
         }
         setError('Unexpected response from SSO callback');

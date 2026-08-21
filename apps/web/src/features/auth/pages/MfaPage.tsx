@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from '@qyx/ui';
 import { setSession } from '../../../lib/auth';
 import { apiUrl } from '../../../lib/config';
+import { ROLE_HOME_PATH, bucketOf } from '../../../lib/roles';
 
 interface MfaResponse {
   access_token?: string;
@@ -52,7 +53,8 @@ export default function MfaPage() {
           localStorage.removeItem('qyx-mfa-user-id');
         }
         setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
-        navigate('/app');
+        const bucket = bucketOf(data.user.role);
+        navigate(ROLE_HOME_PATH[bucket]);
         return;
       }
       setError('Unexpected response from server');

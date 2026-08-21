@@ -1,214 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, Users, Hash, MessageSquare, Settings, Shield, X, FileText, Monitor, KeyRound, Bell, LogOut } from 'lucide-react';
-import { Badge, Command, CommandInput, CommandList, CommandItem } from '@qyx/ui';
-import { useAuthStore } from '../stores/authStore';
-import { logout } from '../lib/auth';
-import { listMyDevices, registerDevice, resolvePairingCode, authorizeDevice, revokeDevice, type Device } from '../features/devices/api/devicesApi';
+import { X, Shield } from 'lucide-react';
+import { Badge } from '@qyx/ui';
+import { listMyDevices, registerDevice, resolvePairingCode, authorizeDevice, revokeDevice, type Device } from '../../features/devices/api/devicesApi';
 
-export default function AuthenticatedLayout() {
-  const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-
-  async function handleLogout() {
-    await logout();
-    navigate('/login');
-  }
-
-  return (
-    <div className="h-screen w-screen bg-void text-text-primary font-mono flex flex-col">
-      <div className="flex flex-1 overflow-hidden">
-        <DirectoryPane userRole={user?.role} />
-        <div className="flex flex-1 flex-col lg:flex-row">
-          <div className="flex-1">
-            <Outlet />
-          </div>
-          <InspectorPane />
-        </div>
-      </div>
-      <StatusBar user={user} onLogout={handleLogout} />
-      <CommandPalette />
-    </div>
-  );
-}
-
-function DirectoryPane({ userRole }: { userRole?: string }) {
-  const [open, setOpen] = useState(true);
-  const [mobileView, setMobileView] = useState<'directory' | 'buffer' | 'inspector'>('buffer');
-
-  return (
-    <>
-      <div className="hidden lg:flex lg:w-64">
-        {open && (
-          <div className="flex h-full w-full flex-col border-r border-hairline bg-surface">
-            <div className="flex h-9 items-center border-b border-hairline px-3">
-              <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">Directory</span>
-              <button onClick={() => setOpen(false)} className="ml-auto text-text-dim hover:text-text-primary" aria-label="Close directory pane">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>ACME CORP</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Hash size={12} className="mr-2" />
-                    <span>general</span>
-                  </div>
-                  <div className="flex items-center px-2 py-1 text-xs text-text-primary bg-raised">
-                    <Hash size={12} className="mr-2" />
-                    <span>engineering</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Groups</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Users size={12} className="mr-2" />
-                    <span>Engineering Lead</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Direct</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <MessageSquare size={12} className="mr-2" />
-                    <span>sarah.w</span>
-                  </div>
-                </div>
-              </div>
-              <AdminNav userRole={userRole} />
-            </div>
-          </div>
-        )}
-        {!open && (
-          <button onClick={() => setOpen(true)} className="flex h-full w-8 flex-col items-center justify-center border-r border-hairline bg-surface text-text-dim hover:text-text-primary" aria-label="Open directory pane">
-            <Settings size={14} />
-          </button>
-        )}
-      </div>
-      <div className="fixed inset-0 z-40 bg-void lg:hidden">
-        {mobileView === 'directory' && (
-          <div className="flex h-full w-full flex-col">
-            <div className="flex h-9 items-center border-b border-hairline px-3">
-              <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">Directory</span>
-              <button onClick={() => setMobileView('buffer')} className="ml-auto text-text-dim hover:text-text-primary">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>ACME CORP</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Hash size={12} className="mr-2" />
-                    <span>general</span>
-                  </div>
-                  <div className="flex items-center px-2 py-1 text-xs text-text-primary bg-raised">
-                    <Hash size={12} className="mr-2" />
-                    <span>engineering</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Groups</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Users size={12} className="mr-2" />
-                    <span>Engineering Lead</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Direct</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <MessageSquare size={12} className="mr-2" />
-                    <span>sarah.w</span>
-                  </div>
-                </div>
-              </div>
-              <AdminNav userRole={userRole} />
-            </div>
-          </div>
-        )}
-        {mobileView === 'inspector' && (
-          <div className="flex h-full w-full flex-col">
-            <div className="flex h-9 items-center border-b border-hairline px-3">
-              <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">Inspector</span>
-              <button onClick={() => setMobileView('buffer')} className="ml-auto text-text-dim hover:text-text-primary">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
-              <InspectorContent />
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-function AdminNav({ userRole }: { userRole?: string }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const role = userRole || 'employee';
-
-  if (role !== 'super_admin' && role !== 'admin') return null;
-
-  const items: { view: string; label: string; icon: React.ReactNode }[] = [
-    { view: '/app/members', label: 'Members', icon: <Users size={12} className="mr-2" /> },
-    { view: '/app/groups', label: 'Groups', icon: <Users size={12} className="mr-2" /> },
-    { view: '/app/channels', label: 'Channels', icon: <Hash size={12} className="mr-2" /> },
-    { view: '/app/requests', label: 'Requests', icon: <Shield size={12} className="mr-2" /> },
-    { view: '/app/settings', label: 'Org Settings', icon: <Settings size={12} className="mr-2" /> },
-    { view: '/app/security', label: 'Security Center', icon: <Shield size={12} className="mr-2" /> },
-    { view: '/app/audit', label: 'Audit Log', icon: <FileText size={12} className="mr-2" /> },
-    { view: '/app/devices', label: 'Devices', icon: <Monitor size={12} className="mr-2" /> },
-    { view: '/app/sso', label: 'SSO', icon: <KeyRound size={12} className="mr-2" /> },
-    { view: '/app/alerts', label: 'Alerts', icon: <Bell size={12} className="mr-2" /> },
-  ];
-
-  return (
-    <div className="mb-2">
-      <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-        <Shield size={12} className="mr-1" />
-        <span>Admin</span>
-      </div>
-      <div className="ml-4 mt-1 space-y-1">
-        {items.map((item) => (
-          <button key={item.view} onClick={() => navigate(item.view)} className={`flex items-center w-full px-2 py-1 text-xs ${location.pathname === item.view ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function InspectorPane() {
+export function InspectorPane() {
   const [open, setOpen] = useState(true);
 
   return (
@@ -237,7 +32,7 @@ function InspectorPane() {
   );
 }
 
-function InspectorContent() {
+export function InspectorContent() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [deviceError, setDeviceError] = useState('');
@@ -398,7 +193,7 @@ function InspectorContent() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-signal-cipher">{device.status}</span>
-                  <button onClick={() => handleRevokeDevice(device.id)} className="text-[10px] text-text-secondary hover:text-signal-red">revoke</button>
+                  <button onClick={() => handleRevokeDevice(device.id)} className="text-[10px] text-text-secondary hover:text-text-red">revoke</button>
                 </div>
               </div>
             ))}
@@ -494,64 +289,5 @@ function InspectorContent() {
         </div>
       </div>
     </>
-  );
-}
-
-function StatusBar({ user, onLogout }: { user: { display_name?: string; email?: string; role?: string } | null; onLogout: () => void }) {
-  const display = user?.display_name || user?.email || 'local';
-  return (
-    <div className="h-7 bg-surface border-t border-hairline flex items-center px-3 text-xs text-text-dim shrink-0">
-      <span className="text-signal-cipher mr-2">●</span>
-      <span>connected</span>
-      <span className="mx-3">│</span>
-      <span>e2ee active</span>
-      <span className="mx-3">│</span>
-      <span className="mr-2">{display}</span>
-      <button onClick={onLogout} className="text-text-dim hover:text-text-primary" aria-label="Logout">
-        <LogOut size={12} />
-      </button>
-      <span className="ml-auto">local</span>
-    </div>
-  );
-}
-
-function CommandPalette() {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setOpen((v) => !v);
-      }
-      if (e.key === 'Escape') {
-        setOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
-      <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-      <div className="relative w-full max-w-lg">
-        <Command>
-          <CommandInput placeholder="Type a command or search..." value={query} onValueChange={setQuery} autoFocus />
-          <CommandList>
-            <CommandItem>Jump to conversation...</CommandItem>
-            <CommandItem>Open directory</CommandItem>
-            <CommandItem>Admin dashboard</CommandItem>
-            <CommandItem>Security center</CommandItem>
-          </CommandList>
-        </Command>
-        <button onClick={() => setOpen(false)} className="absolute -top-2 -right-2 text-text-dim hover:text-text-primary" aria-label="Close command palette">
-          <X size={14} />
-        </button>
-      </div>
-    </div>
   );
 }
