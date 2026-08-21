@@ -1,11 +1,18 @@
+import { useNavigate } from 'react-router-dom';
 import { RoleMismatchBanner } from '../../../layouts/shared/RoleMismatchBanner';
 import { ADMIN_NAV_ITEMS } from '../../../lib/roles';
+import { logout } from '../../../lib/auth';
 
 export default function SuperAdminHome() {
+  const navigate = useNavigate();
+  async function handleLogout() { await logout(); navigate('/login'); }
   return (
     <div className="flex h-full w-full flex-col bg-void text-text-primary font-mono">
       <div className="p-3">
-        <RoleMismatchBanner />
+        <div className="flex items-center justify-between mb-3">
+          <RoleMismatchBanner />
+          <button onClick={handleLogout} className="text-xs text-text-dim hover:text-text-primary border border-hairline rounded px-2 py-1">Logout</button>
+        </div>
         <div className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">Super Admin Home</div>
         <div className="mb-4 rounded-sm border border-hairline bg-surface p-3">
           <div className="text-xs font-medium text-text-secondary mb-2">ORG HEALTH SUMMARY</div>
