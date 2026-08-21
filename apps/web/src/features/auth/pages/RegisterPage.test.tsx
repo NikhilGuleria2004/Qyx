@@ -12,13 +12,15 @@ function renderRegister(initialEntries: string[] = ['/register']) {
 }
 
 describe('RegisterPage', () => {
-  it('renders registration form fields', () => {
+  it('renders create-org form by default', () => {
     const html = renderRegister();
     expect(html).toContain('Organization name');
     expect(html).toContain('Domain');
     expect(html).toContain('Display name');
     expect(html).toContain('Email');
     expect(html).toContain('Password');
+    expect(html).not.toContain('Invite code');
+    expect(html).not.toContain('Confirm password');
   });
 
   it('renders submit button and login link', () => {
@@ -32,5 +34,18 @@ describe('RegisterPage', () => {
     const html = renderRegister();
     expect(html).toContain('<form');
     expect(html).toContain('Create your organization and account');
+  });
+
+  it('renders flow toggle tabs', () => {
+    const html = renderRegister();
+    expect(html).toContain('Create org');
+    expect(html).toContain('Join with invite');
+  });
+
+  it('shows invite fields when join flow is active', () => {
+    const html = renderRegister(['/register?flow=join']);
+    expect(html).toContain('Invite code');
+    expect(html).toContain('Confirm password');
+    expect(html).not.toContain('Organization name');
   });
 });
