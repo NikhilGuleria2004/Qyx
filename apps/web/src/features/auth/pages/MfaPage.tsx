@@ -81,6 +81,9 @@ export default function MfaPage() {
             {loading ? 'Verifying…' : 'Verify'}
           </Button>
         </form>
+        <button type="button" onClick={() => navigate('/login')} className="w-full text-xs text-text-dim hover:text-text-primary border border-hairline rounded px-2 py-1.5">
+          Skip for testing
+        </button>
       </div>
     </div>
   );
