@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bucketOf, ROLE_BUCKET, ROLE_HOME_PATH, ROLE_LABEL, BUCKET_LABEL, can, ROLE_PERMISSIONS } from '../lib/roles';
+import { bucketOf, ROLE_BUCKET, ROLE_HOME_PATH, ROLE_LABEL, BUCKET_LABEL, can } from '../lib/roles';
 
 describe('roles', () => {
   it('bucketOf maps backend roles to buckets', () => {
