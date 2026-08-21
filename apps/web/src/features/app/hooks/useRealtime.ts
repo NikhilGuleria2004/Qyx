@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { getAccessToken } from '../../../lib/auth';
+import { useAuthStore } from '../../../stores/authStore';
 import { wsUrl } from '../../../lib/config';
 
 type ServerFrame =
@@ -17,6 +18,7 @@ export function useRealtime(onMessage: MessageHandler) {
   const subscribedRef = useRef<Set<string>>(new Set());
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const connect = useCallback(() => {
     const token = getAccessToken();
@@ -65,11 +67,12 @@ export function useRealtime(onMessage: MessageHandler) {
     return () => {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [connect]);
+  }, [connect, accessToken]);
 
   const subscribe = useCallback((conversationId: string) => {
     subscribedRef.current.add(conversationId);
