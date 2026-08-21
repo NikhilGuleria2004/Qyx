@@ -19,6 +19,7 @@ export default function AppPage() {
   const [compose, setCompose] = useState('');
   const [sending, setSending] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [appError, setAppError] = useState('');
   const [loading, setLoading] = useState(true);
   const [handshakePhase, setHandshakePhase] = useState<'idle' | 'running' | 'done'>('running');
   const [handshakeLines, setHandshakeLines] = useState<string[]>([]);
@@ -93,8 +94,8 @@ export default function AppPage() {
           }
           localKeyPairRef.current = kp;
         }
-      } catch {
-        // key pair init failed; encryption will be unavailable
+      } catch (err) {
+        setAppError('Key pair init failed: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
     initKeyPair();
@@ -108,8 +109,8 @@ export default function AppPage() {
         if (convs.length > 0 && !activeConversationId) {
           setActiveConversationId(convs[0].id);
         }
-      } catch {
-        // load conversations failed
+      } catch (err) {
+        setAppError('Failed to load conversations: ' + (err instanceof Error ? err.message : String(err)));
       } finally {
         setLoading(false);
       }
@@ -134,8 +135,8 @@ export default function AppPage() {
           setMessages(msgs);
           await indexAndDecrypt(msgs);
         }
-      } catch {
-        // load messages failed
+      } catch (err) {
+        setAppError('Failed to load messages: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
     loadMessages();
@@ -319,8 +320,8 @@ export default function AppPage() {
       setActiveConversationId(conv.id);
       setShowNewConversation(false);
       setNewConversationUserId('');
-    } catch {
-      // create conversation failed
+    } catch (err) {
+      setAppError('Create conversation failed: ' + (err instanceof Error ? err.message : String(err)));
     }
   }
 
@@ -335,6 +336,7 @@ export default function AppPage() {
         onShowNewConversation={() => setShowNewConversation(true)}
       />
       <div className="flex-1 overflow-y-auto p-3">
+        {appError && <div className="text-xs text-signal-amber mb-2">&gt; {appError}</div>}
         {handshakePhase !== 'done' ? (
           <div className="space-y-1 font-mono text-sm text-signal-cipher">
             {handshakeLines.map((line, i) => (<div key={i} className="animate-fade-in">{line}</div>))}
@@ -342,6 +344,8 @@ export default function AppPage() {
           </div>
         ) : loading ? (
           <div className="text-xs text-text-dim">&gt; loading messages...</div>
+        ) : conversations.length === 0 ? (
+          <div className="text-xs text-text-dim">&gt; no conversations yet. create one above.</div>
         ) : (
           <MessageList messages={messages} decryptedMessages={decryptedMessages} searchResults={searchResults} typingUsers={typingUsers} endRef={messagesEndRef} onDownload={handleDownload} />
         )}
