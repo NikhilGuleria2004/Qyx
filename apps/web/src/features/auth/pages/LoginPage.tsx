@@ -66,8 +66,8 @@ export default function LoginPage() {
         navigate('/mfa');
         return;
       }
-      if (data.access_token && data.refresh_token && data.user) {
-        setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
+      if (data.access_token && data.user) {
+        setSession(data.access_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         try {
           const orgRes = await fetch(apiUrl(`/v1/organizations/${data.user.organization_id}`), {
             headers: { Authorization: `Bearer ${data.access_token}` },

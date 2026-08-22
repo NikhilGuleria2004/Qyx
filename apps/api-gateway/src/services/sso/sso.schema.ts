@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const CreateSsoProviderSchema = z.object({
   provider_name: z.string().min(1).max(255),
-  provider_type: z.enum(['oidc', 'saml']).default('oidc'),
+  provider_type: z.enum(['oidc', 'saml']).optional().default('oidc'),
   issuer_url: z.string().url().optional(),
   client_id: z.string().min(1),
   client_secret: z.string().min(1),
@@ -26,5 +26,5 @@ export const UpdateSsoProviderSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-export type CreateSsoProvider = z.infer<typeof CreateSsoProviderSchema>;
-export type UpdateSsoProvider = z.infer<typeof UpdateSsoProviderSchema>;
+export type CreateSsoProvider = z.input<typeof CreateSsoProviderSchema>;
+export type UpdateSsoProvider = z.input<typeof UpdateSsoProviderSchema>;

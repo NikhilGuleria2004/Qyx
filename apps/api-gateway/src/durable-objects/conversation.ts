@@ -18,8 +18,17 @@ export class ConversationDO {
 
     if (url.pathname === '/ws') {
       const userId = url.searchParams.get('user_id');
-      if (userId && this.removedMembers.has(userId)) {
+      if (!userId) {
+        return new Response('user_id required', { status: 401 });
+      }
+
+      if (this.removedMembers.has(userId)) {
         return new Response('Forbidden', { status: 403 });
+      }
+
+      const isMember = await this.verifyMembership(userId);
+      if (!isMember) {
+        return new Response('Forbidden: not a conversation member', { status: 403 });
       }
 
       const webSocketPair = new WebSocketPair();
@@ -51,7 +60,7 @@ export class ConversationDO {
 
     if (request.method === 'POST' || request.method === 'PUT') {
       const body = (await request.json()) as { event: string; messageId?: string; ciphertext?: string; message_type?: string; sender_id?: string; conversation_id?: string; recipient_id?: string; removed_user_id?: string };
-      
+
       if (body.event === 'new_message') {
         this.sequence++;
         const sequenceNumber = this.sequence;
@@ -123,5 +132,13 @@ export class ConversationDO {
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
     this.sockets.delete(ws);
+  }
+
+  private async verifyMembership(userId: string): Promise<boolean> {
+    const conversationId = this._state.id.toString();
+    const member = await this._env.PRIMARY_DB.prepare(
+      'SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ? AND removed_at IS NULL'
+    ).bind(conversationId, userId).first();
+    return member !== null;
   }
 }

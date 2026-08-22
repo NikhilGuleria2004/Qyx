@@ -67,8 +67,8 @@ export default function RegisterPage() {
         return;
       }
       if (data.org_created) {
-        if (data.access_token && data.refresh_token && data.user) {
-          setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
+        if (data.access_token && data.user) {
+          setSession(data.access_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         }
         navigate('/onboarding?flow=create');
         return;

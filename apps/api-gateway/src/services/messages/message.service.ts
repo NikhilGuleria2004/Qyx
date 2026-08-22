@@ -45,7 +45,15 @@ export class MessageService {
     };
   }
 
-  async listMessages(conversationId: string, organizationId: string, limit = 50, beforeCreatedAt?: number): Promise<Message[]> {
+  async listMessages(conversationId: string, userId: string, organizationId: string, limit = 50, beforeCreatedAt?: number): Promise<Message[]> {
+    const members = await getConversationMembers(this.db, conversationId);
+    const memberList = members as { user_id: string }[];
+    const isMember = memberList.some(m => m.user_id === userId);
+
+    if (!isMember) {
+      throw new Error('Not a member of this conversation');
+    }
+
     const messages = await getMessagesByConversation(this.db, conversationId, organizationId, limit, beforeCreatedAt);
     return messages as unknown as Message[];
   }

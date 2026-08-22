@@ -35,7 +35,6 @@ describe('SuperAdminHome dashboard data (Phase 7)', () => {
     useAuthStore.setState({
       user: { id: 'usr_1', email: 'super@test.com', name: 'Super', role: 'super_admin', orgId: 'org_1' },
       accessToken: 'test-token',
-      refreshToken: null,
       mfaRequired: false,
       roleBucket: 'superadmin',
       meVerifiedAt: null,

@@ -14,4 +14,9 @@ describe('ConversationDO', () => {
     expect(typeof proto.webSocketClose).toBe('function');
     expect(typeof proto.webSocketError).toBe('function');
   });
+
+  it('has verifyMembership method', () => {
+    const proto = ConversationDO.prototype;
+    expect(typeof (proto as unknown as { verifyMembership: unknown }).verifyMembership).toBe('function');
+  });
 });

@@ -3,6 +3,7 @@ import { addConnection, removeConnection, handleFrame, broadcastPresence } from 
 
 type RealtimeBindings = {
   SESSION_KV: KVNamespace;
+  PRIMARY_DB: D1Database;
 };
 
 type RealtimeVariables = {
@@ -44,6 +45,7 @@ app.get('/', async (c) => {
     organizationId: session.organization_id,
     ws: server,
     subscriptions: new Set<string>(),
+    db: c.env.PRIMARY_DB,
   };
 
   addConnection(connection);

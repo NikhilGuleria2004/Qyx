@@ -5,6 +5,7 @@ export type Connection = {
   organizationId: string;
   ws: WebSocket;
   subscriptions: Set<string>;
+  db: D1Database;
 };
 
 const connections: Connection[] = [];
@@ -50,7 +51,7 @@ export function broadcastPresence(userId: string, status: 'online' | 'offline') 
   }
 }
 
-export function handleFrame(connection: Connection, data: string | ArrayBuffer): void {
+export async function handleFrame(connection: Connection, data: string | ArrayBuffer): Promise<void> {
   let frame: ClientFrame;
   try {
     frame = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data)) as ClientFrame;
@@ -62,7 +63,10 @@ export function handleFrame(connection: Connection, data: string | ArrayBuffer):
   switch (frame.type) {
     case 'subscribe':
       for (const conversationId of frame.conversation_ids) {
-        connection.subscriptions.add(conversationId);
+        const isMember = connection.subscriptions.has(conversationId) || (await verifyMembership(connection.db, conversationId, connection.userId));
+        if (isMember) {
+          connection.subscriptions.add(conversationId);
+        }
       }
       connection.ws.send(JSON.stringify({ type: 'subscribed', conversation_ids: Array.from(connection.subscriptions) }));
       break;
@@ -78,4 +82,11 @@ export function handleFrame(connection: Connection, data: string | ArrayBuffer):
     default:
       connection.ws.send(JSON.stringify({ type: 'error', message: `unknown frame type: ${(frame as ClientFrame).type}` }));
   }
+}
+
+async function verifyMembership(db: D1Database, conversationId: string, userId: string): Promise<boolean> {
+  const member = await db.prepare(
+    'SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ? AND removed_at IS NULL'
+  ).bind(conversationId, userId).first();
+  return member !== null;
 }

@@ -20,6 +20,7 @@ type Props = {
 const EVENT_TYPES = [
   'user_registered',
   'login_success',
+  'login_failed',
   'login_mfa_required',
   'mfa_verified',
   'logout',

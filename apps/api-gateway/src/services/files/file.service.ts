@@ -119,19 +119,14 @@ export class FileService {
     return updated as unknown as File;
   }
 
-  async getDownloadUrl(organizationId: string, fileId: string): Promise<string | null> {
-    const file = await getFileById(this.db, fileId);
-    const fileData = file as unknown as File | undefined;
+  async getDownloadUrl(organizationId: string, fileId: string, userId: string): Promise<string | null> {
+    const file = await this.getFile(fileId, userId);
 
-    if (!fileData) {
+    if (!file) {
       return null;
     }
 
-    if (fileData.organization_id !== organizationId) {
-      return null;
-    }
-
-    return this.storage.presignGetUrl(fileData.encrypted_storage_reference, 300);
+    return this.storage.presignGetUrl(file.encrypted_storage_reference, 300);
   }
 
   async getFile(fileId: string, userId: string): Promise<File | null> {

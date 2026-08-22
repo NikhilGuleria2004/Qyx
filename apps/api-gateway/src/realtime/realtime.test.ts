@@ -26,12 +26,30 @@ function createMockWs(): WebSocket & { sent: string[] } {
   } as unknown as WebSocket & { sent: string[] };
 }
 
+function createMockDb(memberships: Record<string, boolean> = {}): D1Database {
+  return {
+    prepare: (sql: string) => ({
+      bind: (...args: unknown[]) => ({
+        first: async () => {
+          if (sql.includes('SELECT 1 FROM conversation_members')) {
+            const key = `${args[0]}:${args[1]}`;
+            return memberships[key] ? { '1': 1 } : null;
+          }
+          return null;
+        },
+        all: async () => ({ results: [] }),
+        run: async () => ({ changes: 1 }),
+      }),
+    }),
+  } as unknown as D1Database;
+}
+
 describe('realtime', () => {
   it('adds and removes connections', () => {
     const ws1 = createMockWs();
     const ws2 = createMockWs();
-    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set<string>() };
-    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set<string>() };
+    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set<string>(), db: createMockDb() };
+    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set<string>(), db: createMockDb() };
 
     addConnection(conn1);
     addConnection(conn2);
@@ -46,7 +64,7 @@ describe('realtime', () => {
 
   it('broadcasts message frames to subscribers', () => {
     const ws1 = createMockWs();
-    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set(['conv_1']) };
+    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set(['conv_1']), db: createMockDb() };
     addConnection(conn1);
 
     broadcast('conv_1', { type: 'message', conversation_id: 'conv_1', message: { id: 'msg_1' } });
@@ -59,8 +77,8 @@ describe('realtime', () => {
   it('broadcasts presence to all connections', () => {
     const ws1 = createMockWs();
     const ws2 = createMockWs();
-    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set() };
-    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set() };
+    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set(), db: createMockDb() };
+    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set(), db: createMockDb() };
     addConnection(conn1);
     addConnection(conn2);
 
@@ -73,39 +91,40 @@ describe('realtime', () => {
     removeConnection(conn2);
   });
 
-  it('handles subscribe frame', () => {
+  it('handles subscribe frame with membership verification', async () => {
     const ws = createMockWs();
-    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set<string>() };
+    const memberships: Record<string, boolean> = { 'conv_1:usr_1': true };
+    const db = createMockDb(memberships);
+    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set<string>(), db };
     addConnection(conn);
 
-    handleFrame(conn, JSON.stringify({ type: 'subscribe', conversation_ids: ['conv_1', 'conv_2'] }));
+    await handleFrame(conn, JSON.stringify({ type: 'subscribe', conversation_ids: ['conv_1', 'conv_2'] }));
     expect(conn.subscriptions.has('conv_1')).toBe(true);
-    expect(conn.subscriptions.has('conv_2')).toBe(true);
-    expect(JSON.parse(ws.sent[0]).type).toBe('subscribed');
+    expect(conn.subscriptions.has('conv_2')).toBe(false);
 
     removeConnection(conn);
   });
 
-  it('handles ack frame', () => {
+  it('handles ack frame', async () => {
     const ws = createMockWs();
-    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set() };
+    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set(), db: createMockDb() };
     addConnection(conn);
 
-    handleFrame(conn, JSON.stringify({ type: 'ack', message_id: 'msg_1' }));
+    await handleFrame(conn, JSON.stringify({ type: 'ack', message_id: 'msg_1' }));
     expect(JSON.parse(ws.sent[0])).toEqual({ type: 'ack', message_id: 'msg_1' });
 
     removeConnection(conn);
   });
 
-  it('handles typing frame', () => {
+  it('handles typing frame', async () => {
     const ws1 = createMockWs();
     const ws2 = createMockWs();
-    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set(['conv_1']) };
-    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set(['conv_1']) };
+    const conn1: Connection = { userId: 'usr_1', organizationId: 'org_1', ws: ws1, subscriptions: new Set(['conv_1']), db: createMockDb() };
+    const conn2: Connection = { userId: 'usr_2', organizationId: 'org_1', ws: ws2, subscriptions: new Set(['conv_1']), db: createMockDb() };
     addConnection(conn1);
     addConnection(conn2);
 
-    handleFrame(conn1, JSON.stringify({ type: 'typing', conversation_id: 'conv_1' }));
+    await handleFrame(conn1, JSON.stringify({ type: 'typing', conversation_id: 'conv_1' }));
     expect(ws2.sent.length).toBe(1);
     expect(JSON.parse(ws2.sent[0]).type).toBe('typing');
 
@@ -113,12 +132,12 @@ describe('realtime', () => {
     removeConnection(conn2);
   });
 
-  it('rejects invalid frame', () => {
+  it('rejects invalid frame', async () => {
     const ws = createMockWs();
-    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set() };
+    const conn: Connection = { userId: 'usr_1', organizationId: 'org_1', ws, subscriptions: new Set(), db: createMockDb() };
     addConnection(conn);
 
-    handleFrame(conn, 'not json');
+    await handleFrame(conn, 'not json');
     expect(JSON.parse(ws.sent[0]).type).toBe('error');
 
     removeConnection(conn);

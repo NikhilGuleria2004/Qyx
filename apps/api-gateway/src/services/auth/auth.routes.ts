@@ -3,6 +3,7 @@ import { auth, optionalAuth } from '../../middleware/auth';
 import { orgScope } from '../../middleware/orgScope';
 import { rbac, requirePermission } from '../../middleware/rbac';
 import { createRateLimit, getClientIp } from '../../middleware/rateLimit';
+import { BruteForceProtection, getBruteForceIdentifier } from '../../middleware/bruteForce';
 import { AuditService } from '../audit/audit.service';
 import { AuthService } from './auth.service';
 import { RegisterSchema, LoginSchema, MfaVerifySchema, RefreshSchema } from './auth.schema';
@@ -10,6 +11,7 @@ import { RegisterSchema, LoginSchema, MfaVerifySchema, RefreshSchema } from './a
 type AuthBindings = {
   PRIMARY_DB: D1Database;
   SESSION_KV: KVNamespace;
+  RATE_LIMIT_KV: KVNamespace;
 };
 
 type AuthVariables = {
@@ -25,6 +27,12 @@ const authRateLimit = createRateLimit({
   category: 'auth',
   getIdentifier: (c) => getClientIp(c),
 });
+
+const setRefreshCookie = (refreshToken: string) => {
+  return `refresh_token=${encodeURIComponent(refreshToken)}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`;
+};
+
+const clearRefreshCookie = () => 'refresh_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/';
 
 app.use('*', authRateLimit);
 
@@ -74,19 +82,32 @@ app.post('/register', optionalAuth, async (c) => {
     user: result.user,
     org_created: result.orgCreated,
     access_token: accessToken,
-    refresh_token: refreshToken,
     expires_in: 900,
-  }, 201);
+  }, 201, {
+    'Set-Cookie': setRefreshCookie(refreshToken),
+  });
 });
 
 app.post('/login', optionalAuth, async (c) => {
   const body = await c.req.json();
   const parsed = LoginSchema.safeParse(body);
-  
+
   if (!parsed.success) {
     return c.json(
       { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
       400
+    );
+  }
+
+  const bruteForce = new BruteForceProtection(c.env.RATE_LIMIT_KV);
+  const identifier = getBruteForceIdentifier(c, parsed.data.email);
+
+  const lockStatus = await bruteForce.isLocked(identifier);
+  if (lockStatus.locked) {
+    c.header('Retry-After', String(lockStatus.retryAfter));
+    return c.json(
+      { error: { code: 'BRUTE_FORCE_LOCKED', message: `Too many failed login attempts. Try again in ${lockStatus.retryAfter} seconds.`, request_id: c.get('requestId') as string } },
+      429
     );
   }
 
@@ -95,6 +116,7 @@ app.post('/login', optionalAuth, async (c) => {
     const result = await service.login(parsed.data);
 
     if (result.state.state === 'MFA_CHALLENGE_ISSUED') {
+      await bruteForce.recordSuccess(identifier);
       const audit = new AuditService(c.env.PRIMARY_DB);
       await audit.log({
         organization_id: result.state.organizationId!,
@@ -102,10 +124,11 @@ app.post('/login', optionalAuth, async (c) => {
         event_type: 'login_mfa_required',
         metadata: { email: parsed.data.email },
       });
-      const challenge = await service.createMfaChallenge(result.state.userId, result.state.organizationId!, result.state.role!);
+      const challenge = await service.createMfaChallenge(result.state.userId!, result.state.organizationId!, result.state.role!);
       return c.json({ state: result.state.state, mfa_required: true, mfa_challenge: challenge });
     }
 
+    await bruteForce.recordSuccess(identifier);
     const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!, result.state.role!);
 
     const audit = new AuditService(c.env.PRIMARY_DB);
@@ -118,15 +141,24 @@ app.post('/login', optionalAuth, async (c) => {
 
     return c.json({
       access_token: accessToken,
-      refresh_token: refreshToken,
       expires_in: 900,
       user: {
         id: result.state.userId,
         organization_id: result.state.organizationId,
         role: result.state.role,
       },
+    }, 200, {
+      'Set-Cookie': setRefreshCookie(refreshToken),
     });
   } catch (err) {
+    await bruteForce.recordFailure(identifier);
+    const audit = new AuditService(c.env.PRIMARY_DB);
+    await audit.log({
+      organization_id: '',
+      actor_id: undefined,
+      event_type: 'login_failed',
+      metadata: { email: parsed.data.email, reason: 'Invalid credentials' },
+    });
     return c.json(
       { error: { code: 'UNAUTHENTICATED', message: 'Invalid credentials', request_id: c.get('requestId') as string } },
       401
@@ -176,13 +208,14 @@ app.post('/mfa/verify', async (c) => {
   
   return c.json({
     access_token: accessToken,
-    refresh_token: refreshToken,
     expires_in: 900,
     user: {
       id: state.userId,
       organization_id: state.organizationId,
       role: state.role,
     },
+  }, 200, {
+    'Set-Cookie': setRefreshCookie(refreshToken),
   });
 });
 
@@ -190,27 +223,35 @@ app.post('/refresh', async (c) => {
   const body = await c.req.json();
   const parsed = RefreshSchema.safeParse(body);
   
-  if (!parsed.success) {
+  // Also check cookie for refresh token
+  const cookieHeader = c.req.header('Cookie') || '';
+  const cookieToken = cookieHeader.split(';').find((c) => c.trim().startsWith('refresh_token='))?.split('=')?.slice(1).join('=');
+  
+  if (!parsed.success && !cookieToken) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: c.get('requestId') as string } },
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error?.message || 'Missing refresh token', request_id: c.get('requestId') as string } },
       400
     );
   }
 
+  const refreshToken = parsed.success ? parsed.data.refresh_token : decodeURIComponent(cookieToken!.trim());
+
   const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
-  const tokens = await service.refreshSession(parsed.data.refresh_token);
+  const tokens = await service.refreshSession(refreshToken);
   
   if (!tokens) {
     return c.json(
       { error: { code: 'UNAUTHENTICATED', message: 'Invalid or expired refresh token', request_id: c.get('requestId') as string } },
-      401
+      401,
+      { 'Set-Cookie': clearRefreshCookie() }
     );
   }
 
   return c.json({
     access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
     expires_in: 900,
+  }, 200, {
+    'Set-Cookie': setRefreshCookie(tokens.refreshToken),
   });
 });
 
@@ -232,7 +273,9 @@ app.post('/logout', auth, async (c) => {
     metadata: {},
   });
   
-  return c.json({ status: 'logged_out' });
+  return c.json({ status: 'logged_out' }, 200, {
+    'Set-Cookie': clearRefreshCookie(),
+  });
 });
 
 app.get('/me', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {

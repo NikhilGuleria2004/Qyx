@@ -25,6 +25,10 @@ export async function deleteUserSessions(db: D1Database, userId: string) {
   await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
 }
 
+export async function deleteDeviceSessions(db: D1Database, deviceId: string) {
+  await db.prepare('DELETE FROM sessions WHERE device_id = ?').bind(deviceId).run();
+}
+
 export async function updateSessionLastSeen(db: D1Database, sessionId: string) {
   await db.prepare('UPDATE sessions SET last_seen_at = ? WHERE id = ?').bind(Date.now(), sessionId).run();
 }

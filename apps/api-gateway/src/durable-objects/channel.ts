@@ -2,6 +2,7 @@ import { Queue } from '@cloudflare/workers-types';
 
 type Env = {
   OFFLINE_DELIVERY_QUEUE: Queue;
+  PRIMARY_DB: D1Database;
 };
 
 export class ChannelDO {
@@ -14,6 +15,16 @@ export class ChannelDO {
     const url = new URL(request.url);
 
     if (url.pathname === '/ws') {
+      const userId = url.searchParams.get('user_id');
+      if (!userId) {
+        return new Response('user_id required', { status: 401 });
+      }
+
+      const isMember = await this.verifyMembership(userId);
+      if (!isMember) {
+        return new Response('Forbidden: not a channel member', { status: 403 });
+      }
+
       const webSocketPair = new WebSocketPair();
       const [client, server] = Object.values(webSocketPair);
 
@@ -92,5 +103,13 @@ export class ChannelDO {
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
     this.sockets.delete(ws);
+  }
+
+  private async verifyMembership(userId: string): Promise<boolean> {
+    const channelId = this._state.id.toString();
+    const member = await this._env.PRIMARY_DB.prepare(
+      'SELECT 1 FROM channel_members WHERE channel_id = ? AND user_id = ? AND status = ?'
+    ).bind(channelId, userId, 'active').first();
+    return member !== null;
   }
 }

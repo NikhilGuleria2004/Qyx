@@ -266,6 +266,26 @@ export class AlertsService {
       }
     }
 
+    if (threshold.metric === 'permission_denied_rate') {
+      const countResult = await this.db.prepare(
+        'SELECT COUNT(*) as count FROM metrics_events WHERE service = ? AND operation = ? AND status = ? AND created_at >= ?'
+      ).bind('api-gateway', 'rbac_check', 'forbidden', windowStart).first();
+      const count = (countResult as { count: number }).count || 0;
+      if (count > threshold.value) {
+        return { metric: 'permission_denied_rate', value: count, threshold: threshold.value };
+      }
+    }
+
+    if (threshold.metric === 'new_device_count' && rule.organization_id) {
+      const countResult = await this.db.prepare(
+        'SELECT COUNT(*) as count FROM devices WHERE organization_id = ? AND created_at >= ?'
+      ).bind(rule.organization_id, windowStart).first();
+      const count = (countResult as { count: number }).count || 0;
+      if (count > threshold.value) {
+        return { metric: 'new_device_count', value: count, threshold: threshold.value };
+      }
+    }
+
     return null;
   }
 

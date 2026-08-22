@@ -6,12 +6,11 @@ import { bucketOf, type RoleBucket } from '../lib/roles';
 export interface AuthState {
   user: { id: string; email: string; name: string; role: string; orgId: string } | null;
   accessToken: string | null;
-  refreshToken: string | null;
   mfaRequired: boolean;
   roleBucket: RoleBucket | null;
   meVerifiedAt: number | null;
   setUser: (user: AuthState['user']) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+  setAccessToken: (accessToken: string) => void;
   setMfaRequired: (required: boolean) => void;
   refreshAccessToken: () => Promise<string | null>;
   logout: () => void;
@@ -22,21 +21,18 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       mfaRequired: false,
       roleBucket: null,
       meVerifiedAt: null,
       setUser: (user) => set({ user, roleBucket: user ? bucketOf(user.role) : null }),
-      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setAccessToken: (accessToken) => set({ accessToken }),
       setMfaRequired: (mfaRequired) => set({ mfaRequired }),
       refreshAccessToken: async () => {
-        const refreshToken = get().refreshToken;
-        if (!refreshToken) return null;
         try {
           const res = await fetch(apiUrl('/v1/auth/refresh'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken }),
+            credentials: 'include',
           });
           if (!res.ok) {
             get().logout();
@@ -44,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
           }
           const data = await res.json();
           if (data.access_token) {
-            set({ accessToken: data.access_token, refreshToken: data.refresh_token || refreshToken });
+            set({ accessToken: data.access_token });
             return data.access_token;
           }
           get().logout();
@@ -54,11 +50,11 @@ export const useAuthStore = create<AuthState>()(
           return null;
         }
       },
-      logout: () => set({ user: null, accessToken: null, refreshToken: null, mfaRequired: false, roleBucket: null, meVerifiedAt: null }),
+      logout: () => set({ user: null, accessToken: null, mfaRequired: false, roleBucket: null, meVerifiedAt: null }),
     }),
     {
       name: 'qyx-auth',
-      partialize: (state) => ({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken, roleBucket: state.roleBucket }),
+      partialize: (state) => ({ user: state.user, roleBucket: state.roleBucket }),
     }
   )
 );

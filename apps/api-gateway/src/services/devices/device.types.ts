@@ -9,4 +9,5 @@ export interface Device {
   status: string;
   created_at: number;
   last_seen_at?: number;
+  pairing_code?: string;
 }

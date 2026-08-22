@@ -58,8 +58,8 @@ export default function SsoCallbackPage() {
           setProcessing(false);
           return;
         }
-        if (data.access_token && data.refresh_token && data.user) {
-          setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role, email: data.user.email, display_name: data.user.display_name });
+        if (data.access_token && data.user) {
+          setSession(data.access_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role, email: data.user.email, display_name: data.user.display_name });
           const bucket = bucketOf(data.user.role);
           navigate(ROLE_HOME_PATH[bucket], { replace: true });
           return;

@@ -6,16 +6,12 @@ export function getAccessToken(): string | null {
   return useAuthStore.getState().accessToken;
 }
 
-export function getRefreshToken(): string | null {
-  return useAuthStore.getState().refreshToken;
-}
-
 export function getUser() {
   return useAuthStore.getState().user;
 }
 
-export function setSession(accessToken: string, refreshToken: string, user: { id: string; organization_id: string; role: string; email?: string; display_name?: string }) {
-  useAuthStore.getState().setTokens(accessToken, refreshToken);
+export function setSession(accessToken: string, user: { id: string; organization_id: string; role: string; email?: string; display_name?: string }) {
+  useAuthStore.getState().setAccessToken(accessToken);
   useAuthStore.getState().setUser({
     id: user.id,
     email: user.email || '',
@@ -42,7 +38,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let res = await fetch(apiUrl('/v1' + path), { ...options, headers });
+  let res = await fetch(apiUrl('/v1' + path), { ...options, headers, credentials: 'include' });
 
   if (res.status === 401 && !(options as { _retry?: boolean })._retry) {
     if (!refreshing) {
@@ -52,7 +48,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
         const newToken = await refreshPromise;
         if (newToken) {
           const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-          res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+          res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, credentials: 'include', _retry: true } as RequestInit);
         } else {
           clearSession();
         }
@@ -67,7 +63,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
       const newToken = getAccessToken();
       if (newToken) {
         const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-        res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, _retry: true } as RequestInit);
+        res = await fetch(apiUrl('/v1' + path), { ...options, headers: retryHeaders, credentials: 'include', _retry: true } as RequestInit);
       } else {
         clearSession();
       }
@@ -110,6 +106,7 @@ export async function logout(): Promise<void> {
     await fetch(apiUrl('/v1/auth/logout'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      credentials: 'include',
     });
   } catch {
     // ignore network errors during logout

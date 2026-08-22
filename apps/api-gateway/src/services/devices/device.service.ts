@@ -1,6 +1,7 @@
 import { D1Database } from '@cloudflare/workers-types';
 import { getDeviceById, getDevicesByUser, createDevice as dbCreateDevice, updateDeviceStatus } from '../../db/queries/devices';
 import { createAuthorizationRequest, getAuthorizationRequestByPendingDevice } from '../../db/queries/device-authorization';
+import { deleteDeviceSessions } from '../auth/session';
 import { Device } from './device.types';
 import { RegisterDevice } from './device.schema';
 
@@ -95,6 +96,7 @@ export class DeviceService {
     }
 
     await updateDeviceStatus(this.db, deviceData.organization_id, deviceId, 'revoked');
+    await deleteDeviceSessions(this.db, deviceId);
   }
 
   async adminRevokeDevice(organizationId: string, deviceId: string): Promise<void> {
@@ -110,6 +112,7 @@ export class DeviceService {
     }
 
     await updateDeviceStatus(this.db, organizationId, deviceId, 'revoked');
+    await deleteDeviceSessions(this.db, deviceId);
   }
 
   async getDevice(userId: string, deviceId: string): Promise<Device | null> {

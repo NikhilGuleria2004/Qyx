@@ -102,19 +102,21 @@ app.get('/:conversationId/messages', auth, orgScope, requirePermission('messages
   const conversationId = c.req.param('conversationId')!;
 
   const service = new MessageService(c.env.PRIMARY_DB);
-  const messages = await service.listMessages(conversationId, user.organization_id);
+  const messages = await service.listMessages(conversationId, user.user_id, user.organization_id);
 
   return c.json({ messages });
 });
 
 app.get('/:conversationId/keys', auth, orgScope, requirePermission('messages:read'), rbac, async (c) => {
+  const user = c.get('user') as { user_id: string; organization_id: string };
   const conversationId = c.req.param('conversationId')!;
 
   const members = await c.env.PRIMARY_DB.prepare(
     `SELECT u.id, u.public_key FROM users u
      JOIN conversation_members cm ON u.id = cm.user_id
-     WHERE cm.conversation_id = ? AND cm.removed_at IS NULL`
-  ).bind(conversationId).all();
+     WHERE cm.conversation_id = ? AND cm.removed_at IS NULL
+     AND u.organization_id = ?`
+  ).bind(conversationId, user.organization_id).all();
 
   const memberList = (members.results as { id: string; public_key?: string }[]).map(m => ({
     user_id: m.id,

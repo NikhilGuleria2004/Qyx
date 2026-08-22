@@ -95,7 +95,7 @@ export class AuthService {
     }
 
     const role = ['super_admin', 'admin', 'manager', 'employee', 'security_admin'].includes((user as { role: string }).role) ? (user as { role: string }).role : 'employee';
-    const mfaRequired = role === 'super_admin' || role === 'admin';
+    const mfaRequired = role === 'super_admin' || role === 'admin' || role === 'security_admin' || role === 'manager';
 
     if (mfaRequired && !data.bypass_mfa) {
       if (!(user as { mfa_secret?: string }).mfa_secret) {

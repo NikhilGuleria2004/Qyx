@@ -34,7 +34,6 @@ describe('AdminHome SPA navigation (Phase 9)', () => {
     useAuthStore.setState({
       user: { id: 'usr_1', email: 'admin@test.com', name: 'Admin', role: 'admin', orgId: 'org_1' },
       accessToken: 'test-token',
-      refreshToken: null,
       mfaRequired: false,
       roleBucket: 'admin',
       meVerifiedAt: null,

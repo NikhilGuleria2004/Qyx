@@ -147,7 +147,7 @@ app.get('/:fileId/download-url', auth, orgScope, requirePermission('files:read')
     );
   }
 
-  const downloadUrl = await service.getDownloadUrl(user.organization_id, fileId);
+  const downloadUrl = await service.getDownloadUrl(user.organization_id, fileId, user.user_id);
 
   const metricsService = new MetricsService(c.env.PRIMARY_DB);
   metricsService.recordEvent({

@@ -47,11 +47,11 @@ export default function MfaPage() {
         setLoading(false);
         return;
       }
-      if (data.access_token && data.refresh_token && data.user) {
+      if (data.access_token && data.user) {
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem('qyx-mfa-challenge');
         }
-        setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
+        setSession(data.access_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         const bucket = bucketOf(data.user.role);
         navigate(ROLE_HOME_PATH[bucket]);
         return;

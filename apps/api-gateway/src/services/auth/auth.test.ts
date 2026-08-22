@@ -219,6 +219,113 @@ describe('AuthService.register — tenant isolation (Phase 4)', () => {
         organization_name: 'Existing Corp',
         domain: 'existingcorp.com',
       }),
-    ).rejects.toThrow('ORG_JOIN_REQUIRES_INVITE_OR_VERIFIED_DOMAIN');
+      ).rejects.toThrow('ORG_JOIN_REQUIRES_INVITE_OR_VERIFIED_DOMAIN');
+  });
+});
+
+describe('AuthService.login — MFA policy (Phase 14)', () => {
+  function createMockDbWithUser(user: {
+    id: string;
+    organization_id: string;
+    email: string;
+    role: string;
+    password_hash: string;
+    mfa_secret?: string;
+  }) {
+    return {
+      prepare: (sql: string) => ({
+        bind: (..._args: unknown[]) => ({
+          first: async () => {
+            if (sql.includes('SELECT * FROM users WHERE email = ?')) {
+              return user;
+            }
+            return null;
+          },
+          all: async () => ({ results: [] }),
+          run: async () => ({ changes: 1 }),
+        }),
+      }),
+    } as unknown as D1Database;
+  }
+
+  const passwordHash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'; // "password"
+
+  it('requires MFA for security_admin role', async () => {
+    const db = createMockDbWithUser({
+      id: 'usr_1',
+      organization_id: 'org_1',
+      email: 'security@test.com',
+      role: 'security_admin',
+      password_hash: passwordHash,
+    });
+
+    const service = new AuthService(db);
+    const result = await service.login({ email: 'security@test.com', password: 'password', device_name: 'test' });
+
+    expect(result.state.state).toBe('MFA_CHALLENGE_ISSUED');
+    expect(result.state.mfaRequired).toBe(true);
+  });
+
+  it('requires MFA for manager role', async () => {
+    const db = createMockDbWithUser({
+      id: 'usr_1',
+      organization_id: 'org_1',
+      email: 'manager@test.com',
+      role: 'manager',
+      password_hash: passwordHash,
+    });
+
+    const service = new AuthService(db);
+    const result = await service.login({ email: 'manager@test.com', password: 'password', device_name: 'test' });
+
+    expect(result.state.state).toBe('MFA_CHALLENGE_ISSUED');
+    expect(result.state.mfaRequired).toBe(true);
+  });
+
+  it('does not require MFA for employee role', async () => {
+    const db = createMockDbWithUser({
+      id: 'usr_1',
+      organization_id: 'org_1',
+      email: 'employee@test.com',
+      role: 'employee',
+      password_hash: passwordHash,
+    });
+
+    const service = new AuthService(db);
+    const result = await service.login({ email: 'employee@test.com', password: 'password', device_name: 'test' });
+
+    expect(result.state.state).toBe('SESSION_ISSUED');
+  });
+
+  it('requires MFA for admin role', async () => {
+    const db = createMockDbWithUser({
+      id: 'usr_1',
+      organization_id: 'org_1',
+      email: 'admin@test.com',
+      role: 'admin',
+      password_hash: passwordHash,
+    });
+
+    const service = new AuthService(db);
+    const result = await service.login({ email: 'admin@test.com', password: 'password', device_name: 'test' });
+
+    expect(result.state.state).toBe('MFA_CHALLENGE_ISSUED');
+    expect(result.state.mfaRequired).toBe(true);
+  });
+
+  it('requires MFA for super_admin role', async () => {
+    const db = createMockDbWithUser({
+      id: 'usr_1',
+      organization_id: 'org_1',
+      email: 'super@test.com',
+      role: 'super_admin',
+      password_hash: passwordHash,
+    });
+
+    const service = new AuthService(db);
+    const result = await service.login({ email: 'super@test.com', password: 'password', device_name: 'test' });
+
+    expect(result.state.state).toBe('MFA_CHALLENGE_ISSUED');
+    expect(result.state.mfaRequired).toBe(true);
   });
 });
