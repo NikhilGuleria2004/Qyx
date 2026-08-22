@@ -28,7 +28,7 @@ const messageRateLimit = createRateLimit({
   getOrgId: (c) => (c.get('user') as { organization_id?: string } | undefined)?.organization_id,
 });
 
-app.post('/:conversationId/messages', auth, orgScope, rbac, messageRateLimit, async (c) => {
+app.post('/:conversationId/messages', auth, orgScope, requirePermission('messages:write'), rbac, messageRateLimit, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const conversationId = c.req.param('conversationId')!;
   const body = await c.req.json();

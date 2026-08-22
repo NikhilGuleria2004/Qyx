@@ -4,7 +4,16 @@ import { getGroupMember, getGroupMembers, createGroupMember, updateGroupMemberSt
 export class GroupMemberService {
   constructor(private db: D1Database) {}
 
-  async requestToJoin(groupId: string, userId: string): Promise<void> {
+  private async getGroupOrgId(groupId: string): Promise<string | null> {
+    const group = await this.db.prepare('SELECT organization_id FROM groups WHERE id = ?').bind(groupId).first();
+    return group ? (group as { organization_id: string }).organization_id : null;
+  }
+
+  async requestToJoin(groupId: string, userId: string, orgId: string): Promise<void> {
+    const groupOrgId = await this.getGroupOrgId(groupId);
+    if (!groupOrgId || groupOrgId !== orgId) {
+      throw new Error('Group not found');
+    }
     const existing = await getGroupMember(this.db, groupId, userId);
     if (existing) {
       const member = existing as { status: string };
@@ -19,12 +28,20 @@ export class GroupMemberService {
     await createGroupMember(this.db, groupId, userId, 'member', 'pending');
   }
 
-  async listPendingRequests(groupId: string) {
+  async listPendingRequests(groupId: string, orgId: string) {
+    const groupOrgId = await this.getGroupOrgId(groupId);
+    if (!groupOrgId || groupOrgId !== orgId) {
+      throw new Error('Group not found');
+    }
     const members = await getGroupMembers(this.db, groupId, 'pending');
     return members;
   }
 
-  async approveRequest(groupId: string, userId: string, _approverId: string): Promise<{ key_epoch: number }> {
+  async approveRequest(groupId: string, userId: string, orgId: string, _approverId: string): Promise<{ key_epoch: number }> {
+    const groupOrgId = await this.getGroupOrgId(groupId);
+    if (!groupOrgId || groupOrgId !== orgId) {
+      throw new Error('Group not found');
+    }
     const member = await getGroupMember(this.db, groupId, userId);
     const memberData = member as { status: string } | undefined;
 
@@ -43,7 +60,11 @@ export class GroupMemberService {
     };
   }
 
-  async rejectRequest(groupId: string, userId: string): Promise<void> {
+  async rejectRequest(groupId: string, userId: string, orgId: string): Promise<void> {
+    const groupOrgId = await this.getGroupOrgId(groupId);
+    if (!groupOrgId || groupOrgId !== orgId) {
+      throw new Error('Group not found');
+    }
     const member = await getGroupMember(this.db, groupId, userId);
     const memberData = member as { status: string } | undefined;
 
@@ -54,7 +75,11 @@ export class GroupMemberService {
     await deleteGroupMember(this.db, groupId, userId);
   }
 
-  async removeMember(groupId: string, userId: string): Promise<{ key_epoch: number }> {
+  async removeMember(groupId: string, userId: string, orgId: string): Promise<{ key_epoch: number }> {
+    const groupOrgId = await this.getGroupOrgId(groupId);
+    if (!groupOrgId || groupOrgId !== orgId) {
+      throw new Error('Group not found');
+    }
     const member = await getGroupMember(this.db, groupId, userId);
     const memberData = member as { status: string } | undefined;
 

@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { auth, optionalAuth } from '../../middleware/auth';
+import { orgScope } from '../../middleware/orgScope';
+import { rbac, requirePermission } from '../../middleware/rbac';
 import { AuditService } from '../audit/audit.service';
 import { WebAuthnService } from './webauthn.service';
 
@@ -10,11 +13,12 @@ type WebAuthnBindings = {
 
 type WebAuthnVariables = {
   validatedBody?: Record<string, unknown>;
+  user?: { user_id: string; organization_id: string; role: string };
 };
 
 const app = new Hono<{ Bindings: WebAuthnBindings; Variables: WebAuthnVariables }>();
 
-app.post('/register/start', async (c) => {
+app.post('/register/start', optionalAuth, async (c) => {
   const body = await c.req.json();
   const parsed = z.object({
     email: z.string().email(),
@@ -31,7 +35,8 @@ app.post('/register/start', async (c) => {
   }
 
   const service = new WebAuthnService(c.env.PRIMARY_DB, c.env.CHALLENGE_KV);
-  const userId = `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+  const existingUser = await c.env.PRIMARY_DB.prepare('SELECT id FROM users WHERE email = ?').bind(parsed.data.email).first();
+  const userId = existingUser ? (existingUser as { id: string }).id : `usr_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
   const { challenge } = await service.startRegistration(userId, parsed.data.email, parsed.data.display_name, parsed.data.device_name, parsed.data.platform);
   
   return c.json({
@@ -58,7 +63,7 @@ app.post('/register/start', async (c) => {
   });
 });
 
-app.post('/register/finish', async (c) => {
+app.post('/register/finish', auth, async (c) => {
   const body = await c.req.json();
   const parsed = z.object({
     userId: z.string(),
@@ -72,6 +77,14 @@ app.post('/register/finish', async (c) => {
     return c.json(
       { error: { code: 'VALIDATION_ERROR', message: parsed.error.message, request_id: crypto.randomUUID() } },
       400
+    );
+  }
+
+  const user = c.get('user') as { user_id: string; organization_id: string };
+  if (parsed.data.userId !== user.user_id) {
+    return c.json(
+      { error: { code: 'FORBIDDEN_ROLE', message: 'Cannot register credential for another user', request_id: crypto.randomUUID() } },
+      403
     );
   }
 
@@ -96,21 +109,18 @@ app.post('/register/finish', async (c) => {
   
   await c.env.CHALLENGE_KV.delete(`webauthn:register:${parsed.data.challenge}`);
   
-  const userOrg = await c.env.PRIMARY_DB.prepare('SELECT organization_id FROM users WHERE id = ?').bind(parsed.data.userId).first() as { organization_id: string } | null;
-  if (userOrg) {
-    const audit = new AuditService(c.env.PRIMARY_DB);
-    await audit.log({
-      organization_id: userOrg.organization_id,
-      actor_id: parsed.data.userId,
-      event_type: 'passkey_registered',
-      metadata: { credential_id: parsed.data.credential_id },
-    });
-  }
+  const audit = new AuditService(c.env.PRIMARY_DB);
+  await audit.log({
+    organization_id: user.organization_id,
+    actor_id: user.user_id,
+    event_type: 'passkey_registered',
+    metadata: { credential_id: parsed.data.credential_id },
+  });
   
   return c.json({ status: 'registered', credential_id: credential.credential_id });
 });
 
-app.post('/login/start', async (c) => {
+app.post('/login/start', optionalAuth, async (c) => {
   const body = await c.req.json();
   const parsed = z.object({
     email: z.string().email(),
@@ -130,8 +140,8 @@ app.post('/login/start', async (c) => {
   const userResult = await c.env.PRIMARY_DB.prepare('SELECT id FROM users WHERE email = ?').bind(parsed.data.email).first();
   if (!userResult) {
     return c.json(
-      { error: { code: 'USER_NOT_FOUND', message: 'User not found', request_id: crypto.randomUUID() } },
-      404
+      { error: { code: 'INVALID_REQUEST', message: 'Unable to initiate passkey login', request_id: crypto.randomUUID() } },
+      400
     );
   }
 
@@ -140,7 +150,7 @@ app.post('/login/start', async (c) => {
   
   if (credentials.length === 0) {
     return c.json(
-      { error: { code: 'NO_CREDENTIALS', message: 'No passkeys registered', request_id: crypto.randomUUID() } },
+      { error: { code: 'INVALID_REQUEST', message: 'Unable to initiate passkey login', request_id: crypto.randomUUID() } },
       400
     );
   }

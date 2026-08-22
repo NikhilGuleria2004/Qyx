@@ -17,12 +17,12 @@ type GroupMemberVariables = {
 
 const app = new Hono<{ Bindings: GroupMemberBindings; Variables: GroupMemberVariables }>();
 
-app.post('/', auth, orgScope, requirePermission('groups:read'), rbac, async (c) => {
+app.post('/', auth, orgScope, requirePermission('groups:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
-  await service.requestToJoin(groupId, user.user_id);
+  await service.requestToJoin(groupId, user.user_id, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -36,10 +36,11 @@ app.post('/', auth, orgScope, requirePermission('groups:read'), rbac, async (c) 
 });
 
 app.get('/', auth, orgScope, requirePermission('groups:read'), rbac, async (c) => {
+  const user = c.get('user') as { user_id: string; organization_id: string };
   const groupId = c.req.param('groupId')!;
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
-  const requests = await service.listPendingRequests(groupId);
+  const requests = await service.listPendingRequests(groupId, user.organization_id);
 
   return c.json({ requests });
 });
@@ -59,7 +60,7 @@ app.post('/:reqId/approve', auth, orgScope, requirePermission('groups:write'), r
   }
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
-  const result = await service.approveRequest(groupId, reqId, user.user_id);
+  const result = await service.approveRequest(groupId, reqId, user.organization_id, user.user_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -86,7 +87,7 @@ app.post('/:reqId/reject', auth, orgScope, requirePermission('groups:write'), rb
   }
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
-  await service.rejectRequest(groupId, reqId);
+  await service.rejectRequest(groupId, reqId, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -105,7 +106,7 @@ app.delete('/:userId', auth, orgScope, requirePermission('groups:write'), rbac, 
   const userId = c.req.param('userId')!;
 
   const service = new GroupMemberService(c.env.PRIMARY_DB);
-  const result = await service.removeMember(groupId, userId);
+  const result = await service.removeMember(groupId, userId, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({

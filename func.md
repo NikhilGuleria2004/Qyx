@@ -611,9 +611,9 @@ Use this checklist to track progress. Check items off as they are completed and 
 For each service below, complete all sub-items before checking off the service:
 
 **General checks for every service:**
-- [ ] Every mutating route has `requirePermission`/`requireMinimumRole` wired before `rbac`
-- [ ] Every query on org-owned entity scopes by `organization_id` from authenticated session
-- [ ] At least one integration test per route (success + authorization failure)
+- [x] Every mutating route has `requirePermission`/`requireMinimumRole` wired before `rbac`
+- [x] Every query on org-owned entity scopes by `organization_id` from authenticated session
+- [x] At least one integration test per route (success + authorization failure)
 - [ ] Feature manually exercised against local dev backend and reflects real data changes
 
 **1. Alerts**

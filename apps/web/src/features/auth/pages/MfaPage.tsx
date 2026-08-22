@@ -28,9 +28,9 @@ export default function MfaPage() {
     setError('');
     setLoading(true);
     try {
-      const userId = typeof localStorage !== 'undefined' ? localStorage.getItem('qyx-mfa-user-id') : null;
-      if (!userId) {
-        setError('Missing user ID. Please go back to login.');
+      const challenge = typeof localStorage !== 'undefined' ? localStorage.getItem('qyx-mfa-challenge') : null;
+      if (!challenge) {
+        setError('Missing MFA challenge. Please go back to login.');
         setLoading(false);
         return;
       }
@@ -38,9 +38,8 @@ export default function MfaPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Qyx-User-Id': userId,
         },
-        body: JSON.stringify({ mfa_code: code }),
+        body: JSON.stringify({ mfa_code: code, mfa_challenge: challenge }),
       });
       const data = (await res.json()) as MfaResponse & ApiErrorShape;
       if (!res.ok) {
@@ -50,7 +49,7 @@ export default function MfaPage() {
       }
       if (data.access_token && data.refresh_token && data.user) {
         if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('qyx-mfa-user-id');
+          localStorage.removeItem('qyx-mfa-challenge');
         }
         setSession(data.access_token, data.refresh_token, { id: data.user.id, organization_id: data.user.organization_id, role: data.user.role });
         const bucket = bucketOf(data.user.role);

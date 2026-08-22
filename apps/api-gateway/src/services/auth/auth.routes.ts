@@ -102,7 +102,8 @@ app.post('/login', optionalAuth, async (c) => {
         event_type: 'login_mfa_required',
         metadata: { email: parsed.data.email },
       });
-      return c.json({ state: result.state.state, mfa_required: true, user_id: result.state.userId });
+      const challenge = await service.createMfaChallenge(result.state.userId, result.state.organizationId!, result.state.role!);
+      return c.json({ state: result.state.state, mfa_required: true, mfa_challenge: challenge });
     }
 
     const { accessToken, refreshToken } = await service.issueSession(result.state.userId!, result.state.organizationId!, result.state.role!);
@@ -144,16 +145,24 @@ app.post('/mfa/verify', async (c) => {
     );
   }
 
-  const userId = c.req.header('X-Qyx-User-Id');
-  if (!userId) {
+  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
+  const challengeData = await service.resolveMfaChallenge(parsed.data.mfa_challenge);
+  if (!challengeData) {
     return c.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Missing user ID', request_id: c.get('requestId') as string } },
+      { error: { code: 'INVALID_CHALLENGE', message: 'MFA challenge expired or invalid', request_id: c.get('requestId') as string } },
       400
     );
   }
 
-  const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
-  const state = await service.verifyMfa(userId, parsed.data.mfa_code);
+  let state;
+  try {
+    state = await service.verifyMfa(challengeData.user_id, parsed.data.mfa_code);
+  } catch (err) {
+    return c.json(
+      { error: { code: 'INVALID_MFA_CODE', message: err instanceof Error ? err.message : 'MFA verification failed', request_id: c.get('requestId') as string } },
+      401
+    );
+  }
   
   const { accessToken, refreshToken } = await service.issueSession(state.userId!, state.organizationId!, state.role!);
   

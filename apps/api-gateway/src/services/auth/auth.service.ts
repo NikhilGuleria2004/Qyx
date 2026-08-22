@@ -154,6 +154,30 @@ export class AuthService {
     };
   }
 
+  async createMfaChallenge(userId: string, organizationId: string, role: string): Promise<string> {
+    const challenge = `mfa_challenge_${crypto.randomUUID().replace(/-/g, '')}`;
+    if (this.sessionKv) {
+      await this.sessionKv.put(challenge, JSON.stringify({
+        user_id: userId,
+        organization_id: organizationId,
+        role,
+      }), { expirationTtl: 300 });
+    }
+    return challenge;
+  }
+
+  async resolveMfaChallenge(challenge: string): Promise<{ user_id: string; organization_id: string; role: string } | null> {
+    if (!this.sessionKv) {
+      return null;
+    }
+    const data = await this.sessionKv.get(challenge, 'json');
+    if (!data) {
+      return null;
+    }
+    await this.sessionKv.delete(challenge);
+    return data as { user_id: string; organization_id: string; role: string };
+  }
+
   async issueSession(userId: string, organizationId: string, role: string, deviceId?: string): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = crypto.randomUUID();
     const refreshToken = `rt_${crypto.randomUUID().replace(/-/g, '')}`;

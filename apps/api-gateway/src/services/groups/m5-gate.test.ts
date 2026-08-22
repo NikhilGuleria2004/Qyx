@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { GroupMemberService } from './group-member.service';
 
 describe('M5 Gate — E2E group journeys', () => {
+  const ORG_ID = 'org_123';
+
   it('journey 3: group join → key epoch grants decryption access', async () => {
     let keyEpoch = 1;
     const memberStatuses = new Map<string, string>();
@@ -9,6 +11,9 @@ describe('M5 Gate — E2E group journeys', () => {
       prepare: (_sql: string) => ({
         bind: (..._args: unknown[]) => ({
           first: async () => {
+            if (_sql.includes('SELECT organization_id FROM groups')) {
+              return { organization_id: ORG_ID };
+            }
             if (_sql.includes('SELECT key_epoch FROM groups')) {
               return { key_epoch: keyEpoch };
             }
@@ -43,11 +48,11 @@ describe('M5 Gate — E2E group journeys', () => {
 
     const service = new GroupMemberService(db);
 
-    await service.requestToJoin('grp_1', 'usr_1');
+    await service.requestToJoin('grp_1', 'usr_1', ORG_ID);
     expect(memberStatuses.get('usr_1')).toBe('pending');
     expect(keyEpoch).toBe(1);
 
-    const approved = await service.approveRequest('grp_1', 'usr_1', 'admin_1');
+    const approved = await service.approveRequest('grp_1', 'usr_1', ORG_ID, 'admin_1');
     expect(approved.key_epoch).toBe(2);
     expect(memberStatuses.get('usr_1')).toBe('active');
 
@@ -65,6 +70,9 @@ describe('M5 Gate — E2E group journeys', () => {
       prepare: (_sql: string) => ({
         bind: (..._args: unknown[]) => ({
           first: async () => {
+            if (_sql.includes('SELECT organization_id FROM groups')) {
+              return { organization_id: ORG_ID };
+            }
             if (_sql.includes('SELECT key_epoch FROM groups')) {
               return { key_epoch: keyEpoch };
             }
@@ -99,7 +107,7 @@ describe('M5 Gate — E2E group journeys', () => {
     let groupData = group as { key_epoch: number } | undefined;
     expect(groupData?.key_epoch).toBe(2);
 
-    const removed = await service.removeMember('grp_1', 'usr_2');
+    const removed = await service.removeMember('grp_1', 'usr_2', ORG_ID);
     expect(removed.key_epoch).toBe(3);
 
     group = await db.prepare('SELECT key_epoch FROM groups WHERE id = ?').bind('grp_1').first();

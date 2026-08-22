@@ -12,7 +12,7 @@ interface LoginResponse {
   user?: { id: string; organization_id: string; role: string };
   state?: string;
   mfa_required?: boolean;
-  user_id?: string;
+  mfa_challenge?: string;
 }
 
 interface ApiErrorShape {
@@ -60,8 +60,8 @@ export default function LoginPage() {
         return;
       }
       if (data.state === 'MFA_CHALLENGE_ISSUED' || data.mfa_required) {
-        if (data.user_id && typeof localStorage !== 'undefined') {
-          localStorage.setItem('qyx-mfa-user-id', data.user_id);
+        if (data.mfa_challenge && typeof localStorage !== 'undefined') {
+          localStorage.setItem('qyx-mfa-challenge', data.mfa_challenge);
         }
         navigate('/mfa');
         return;

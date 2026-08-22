@@ -19,6 +19,7 @@ export const LoginSchema = z.object({
 
 export const MfaVerifySchema = z.object({
   mfa_code: z.string().length(6),
+  mfa_challenge: z.string().min(1),
 });
 
 export const RefreshSchema = z.object({

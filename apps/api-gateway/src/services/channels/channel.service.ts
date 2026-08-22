@@ -6,6 +6,11 @@ import { Channel, ChannelMember } from './channel.types';
 export class ChannelService {
   constructor(private db: D1Database) {}
 
+  private async getChannelOrgId(channelId: string): Promise<string | null> {
+    const channel = await this.db.prepare('SELECT organization_id FROM channels WHERE id = ?').bind(channelId).first();
+    return channel ? (channel as { organization_id: string }).organization_id : null;
+  }
+
   async createChannel(organizationId: string, createdBy: string, data: CreateChannel): Promise<Channel> {
     const channelId = `chn_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
     await dbCreateChannel(this.db, channelId, organizationId, data.name, data.description || null, createdBy);
@@ -28,7 +33,11 @@ export class ChannelService {
     await dbDeleteChannel(this.db, organizationId, channelId);
   }
 
-  async requestToJoin(channelId: string, userId: string): Promise<void> {
+  async requestToJoin(channelId: string, userId: string, orgId: string): Promise<void> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const existing = await getChannelMember(this.db, channelId, userId);
     if (existing) {
       const member = existing as { status: string };
@@ -43,12 +52,20 @@ export class ChannelService {
     await createChannelMember(this.db, channelId, userId, false, 'pending');
   }
 
-  async listPendingRequests(channelId: string) {
+  async listPendingRequests(channelId: string, orgId: string) {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const members = await getChannelMembers(this.db, channelId, 'pending');
     return members;
   }
 
-  async approveRequest(channelId: string, userId: string, canPost: boolean = false): Promise<{ status: string; can_post: boolean }> {
+  async approveRequest(channelId: string, userId: string, orgId: string, canPost: boolean = false): Promise<{ status: string; can_post: boolean }> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const member = await getChannelMember(this.db, channelId, userId);
     const memberData = member as { status: string } | undefined;
 
@@ -64,7 +81,11 @@ export class ChannelService {
     };
   }
 
-  async rejectRequest(channelId: string, userId: string): Promise<void> {
+  async rejectRequest(channelId: string, userId: string, orgId: string): Promise<void> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const member = await getChannelMember(this.db, channelId, userId);
     const memberData = member as { status: string } | undefined;
 
@@ -75,7 +96,11 @@ export class ChannelService {
     await deleteChannelMember(this.db, channelId, userId);
   }
 
-  async ackPost(channelId: string, postId: string, userId: string, _reaction?: string): Promise<void> {
+  async ackPost(channelId: string, postId: string, userId: string, orgId: string, _reaction?: string): Promise<void> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const member = await getChannelMember(this.db, channelId, userId);
     const memberData = member as { status: string } | undefined;
 
@@ -87,17 +112,29 @@ export class ChannelService {
     // For now, we just verify membership
   }
 
-  async getChannelMembersList(channelId: string): Promise<ChannelMember[]> {
+  async getChannelMembersList(channelId: string, orgId: string): Promise<ChannelMember[]> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const members = await getChannelMembers(this.db, channelId, 'active');
     return members as unknown as ChannelMember[];
   }
 
-  async listMembers(channelId: string): Promise<ChannelMember[]> {
+  async listMembers(channelId: string, orgId: string): Promise<ChannelMember[]> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const members = await getChannelMembers(this.db, channelId);
     return members as unknown as ChannelMember[];
   }
 
-  async removeMember(channelId: string, userId: string): Promise<void> {
+  async removeMember(channelId: string, userId: string, orgId: string): Promise<void> {
+    const channelOrgId = await this.getChannelOrgId(channelId);
+    if (!channelOrgId || channelOrgId !== orgId) {
+      throw new Error('Channel not found');
+    }
     const member = await getChannelMember(this.db, channelId, userId);
     if (!member) {
       throw new Error('Member not found');

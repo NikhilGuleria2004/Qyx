@@ -95,10 +95,11 @@ app.delete('/:channelId', auth, orgScope, requirePermission('channels:write'), r
 });
 
 app.get('/:channelId/members', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
+  const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  const members = await service.listMembers(channelId);
+  const members = await service.listMembers(channelId, user.organization_id);
 
   return c.json({ members });
 });
@@ -109,7 +110,7 @@ app.delete('/:channelId/members/:userId', auth, orgScope, requirePermission('cha
   const userId = c.req.param('userId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  await service.removeMember(channelId, userId);
+  await service.removeMember(channelId, userId, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -127,7 +128,7 @@ app.post('/:channelId/requests', auth, orgScope, requirePermission('channels:rea
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  await service.requestToJoin(channelId, user.user_id);
+  await service.requestToJoin(channelId, user.user_id, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -141,10 +142,11 @@ app.post('/:channelId/requests', auth, orgScope, requirePermission('channels:rea
 });
 
 app.get('/:channelId/requests', auth, orgScope, requirePermission('channels:read'), rbac, async (c) => {
+  const user = c.get('user') as { user_id: string; organization_id: string };
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  const requests = await service.listPendingRequests(channelId);
+  const requests = await service.listPendingRequests(channelId, user.organization_id);
 
   return c.json({ requests });
 });
@@ -164,7 +166,7 @@ app.post('/:channelId/requests/:reqId/approve', auth, orgScope, requirePermissio
   }
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  const result = await service.approveRequest(channelId, reqId, parsed.data.reaction === 'yes');
+  const result = await service.approveRequest(channelId, reqId, user.organization_id, parsed.data.reaction === 'yes');
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -183,7 +185,7 @@ app.post('/:channelId/requests/:reqId/reject', auth, orgScope, requirePermission
   const reqId = c.req.param('reqId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  await service.rejectRequest(channelId, reqId);
+  await service.rejectRequest(channelId, reqId, user.organization_id);
 
   const audit = new AuditService(c.env.PRIMARY_DB);
   await audit.log({
@@ -211,7 +213,7 @@ app.post('/:channelId/posts/:postId/ack', auth, orgScope, requirePermission('cha
   }
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  await service.ackPost(channelId, postId, user.user_id, parsed.data.reaction);
+  await service.ackPost(channelId, postId, user.user_id, user.organization_id, parsed.data.reaction);
 
   return c.json({ status: 'acknowledged' });
 });
@@ -221,7 +223,7 @@ app.post('/:channelId/posts', auth, orgScope, requirePermission('channels:write'
   const channelId = c.req.param('channelId')!;
 
   const service = new ChannelService(c.env.PRIMARY_DB);
-  const member = await service.getChannelMembersList(channelId);
+  const member = await service.getChannelMembersList(channelId, user.organization_id);
   const isMember = member.some(m => m.user_id === user.user_id && m.status === 'active');
 
   if (!isMember) {

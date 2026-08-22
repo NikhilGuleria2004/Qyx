@@ -14,9 +14,9 @@ const ROLE_HIERARCHY: Record<string, number> = {
 
 const PERMISSIONS: Record<string, string[]> = {
   super_admin: ['*'],
-  admin: ['org:read', 'org:update', 'members:read', 'members:write', 'groups:read', 'groups:write', 'channels:read', 'channels:write', 'audit:read', 'security:read'],
-  manager: ['org:read', 'members:read', 'groups:read', 'groups:write', 'channels:read'],
-  employee: ['org:read', 'conversations:read', 'conversations:write', 'files:read', 'files:write'],
+  admin: ['org:read', 'org:update', 'members:read', 'members:write', 'groups:read', 'groups:write', 'channels:read', 'channels:write', 'messages:read', 'messages:write', 'audit:read', 'security:read'],
+  manager: ['org:read', 'members:read', 'groups:read', 'groups:write', 'channels:read', 'messages:read', 'messages:write'],
+  employee: ['org:read', 'conversations:read', 'conversations:write', 'messages:read', 'messages:write', 'files:read', 'files:write'],
   security_admin: ['org:read', 'members:read', 'devices:read', 'devices:write', 'audit:read', 'security:read'],
 };
 

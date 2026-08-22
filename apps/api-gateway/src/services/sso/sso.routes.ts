@@ -38,17 +38,23 @@ app.get('/:provider/start', optionalAuth, async (c) => {
   const state = crypto.randomUUID().replace(/-/g, '');
   const redirectUri = `${new URL(c.req.url).origin}/v1/auth/sso/${providerName}/callback`;
 
-  const orgId = c.req.query('org_id');
-  if (!orgId || typeof orgId !== 'string') {
+  const user = c.get('user') as { user_id: string; organization_id: string } | undefined;
+  const queryOrgId = c.req.query('org_id');
+
+  let orgId: string;
+  if (user) {
+    orgId = user.organization_id;
+  } else if (queryOrgId && typeof queryOrgId === 'string') {
+    orgId = queryOrgId;
+  } else {
     return c.json(
       { error: { code: 'VALIDATION_ERROR', message: 'org_id query parameter required', request_id: c.get('requestId') as string } },
       400
     );
   }
-  const orgIdStr = orgId;
 
   const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
-  const provider = await service.getProviderByName(orgIdStr, providerName);
+  const provider = await service.getProviderByName(orgId, providerName);
 
   if (!provider || !provider.enabled) {
     return c.json(
@@ -103,7 +109,6 @@ app.get('/:provider/callback', optionalAuth, async (c) => {
       400
     );
   }
-  const orgIdStr = orgId;
 
   if (state !== ssoState) {
     return c.json(
@@ -113,7 +118,7 @@ app.get('/:provider/callback', optionalAuth, async (c) => {
   }
 
   const service = new SsoService(c.env.PRIMARY_DB, c.env.SESSION_KV);
-  const provider = await service.getProviderByName(orgIdStr, providerName);
+  const provider = await service.getProviderByName(orgId, providerName);
 
   if (!provider || !provider.enabled) {
     return c.json(

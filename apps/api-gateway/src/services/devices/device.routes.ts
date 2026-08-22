@@ -18,7 +18,7 @@ type DeviceVariables = {
 
 const app = new Hono<{ Bindings: DeviceBindings; Variables: DeviceVariables }>();
 
-app.post('/', auth, orgScope, rbac, async (c) => {
+app.post('/', auth, orgScope, requirePermission('devices:write'), rbac, async (c) => {
   const user = c.get('user') as { user_id: string; organization_id: string };
   const body = await c.req.json();
   const parsed = RegisterDeviceSchema.safeParse(body);
