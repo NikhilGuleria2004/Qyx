@@ -1,11 +1,45 @@
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { RoleMismatchBanner } from '../../../layouts/shared/RoleMismatchBanner';
 import { ADMIN_NAV_ITEMS } from '../../../lib/roles';
 import { logout } from '../../../lib/auth';
+import { useAuthStore } from '../../../stores/authStore';
+import { getPlatformSummary } from '../../admin/api/adminApi';
+
+interface PlatformSummary {
+  total_organizations: number;
+  active_users: number;
+  pending_verifications: number;
+  failed_logins_24h: number;
+  pending_device_authorizations: number;
+}
 
 export default function SuperAdminHome() {
   const navigate = useNavigate();
+  const [summary, setSummary] = useState<PlatformSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   async function handleLogout() { await logout(); navigate('/login'); }
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchSummary() {
+      try {
+        const token = useAuthStore.getState().accessToken;
+        if (!token) { setError('Not authenticated'); setLoading(false); return; }
+        const res = await getPlatformSummary(token);
+        if (!cancelled) {
+          setSummary(res.summary);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) { setError(e instanceof Error ? e.message : 'Failed to load'); setLoading(false); }
+      }
+    }
+    fetchSummary();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="flex h-full w-full flex-col bg-void text-text-primary font-mono">
       <div className="p-3">
@@ -16,20 +50,28 @@ export default function SuperAdminHome() {
         <div className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">Super Admin Home</div>
         <div className="mb-4 rounded-sm border border-hairline bg-surface p-3">
           <div className="text-xs font-medium text-text-secondary mb-2">ORG HEALTH SUMMARY</div>
-          <div className="space-y-1 text-xs text-text-dim">
-            <div>organizations: 12</div>
-            <div>active users: 1,248</div>
-            <div>pending verifications: 3</div>
-            <div>failed logins (24h): 7</div>
-            <div>pending device authorizations: 2</div>
-          </div>
+          {loading ? (
+            <div className="text-xs text-text-dim">Loading...</div>
+          ) : error ? (
+            <div className="text-xs text-text-dim">{error}</div>
+          ) : summary ? (
+            <div className="space-y-1 text-xs text-text-dim">
+              <div>organizations: {summary.total_organizations}</div>
+              <div>active users: {summary.active_users}</div>
+              <div>pending verifications: {summary.pending_verifications}</div>
+              <div>failed logins (24h): {summary.failed_logins_24h}</div>
+              <div>pending device authorizations: {summary.pending_device_authorizations}</div>
+            </div>
+          ) : (
+            <div className="text-xs text-text-dim">No data available</div>
+          )}
         </div>
         <div className="text-xs font-medium text-text-secondary mb-2">QUICK LINKS</div>
         <div className="space-y-1">
           {ADMIN_NAV_ITEMS.map((item) => (
-            <a key={item.path} href={item.path.replace('/admin', '/superadmin')} className="block rounded-sm border border-hairline px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-raised">
+            <Link key={item.segment} to={`/superadmin/${item.segment}`} className="block rounded-sm border border-hairline px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-raised">
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

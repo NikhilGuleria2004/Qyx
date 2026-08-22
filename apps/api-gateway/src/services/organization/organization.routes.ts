@@ -55,6 +55,13 @@ app.post('/', auth, requireSuperAdmin, async (c) => {
   return c.json(org, 201);
 });
 
+app.get('/platform-summary', auth, requireSuperAdmin, async (c) => {
+  const { MetricsService } = await import('../metrics/metrics.service');
+  const metricsService = new MetricsService(c.env.PRIMARY_DB);
+  const summary = await metricsService.getPlatformMetrics();
+  return c.json({ summary });
+});
+
 app.get('/:orgId', auth, orgScope, requirePermission('org:read'), rbac, async (c) => {
   const orgId = c.req.param('orgId')!;
   const service = new OrganizationService(c.env.PRIMARY_DB);

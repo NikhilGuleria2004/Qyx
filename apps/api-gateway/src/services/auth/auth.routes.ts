@@ -40,7 +40,25 @@ app.post('/register', optionalAuth, async (c) => {
   }
 
   const service = new AuthService(c.env.PRIMARY_DB, c.env.SESSION_KV);
-  const result = await service.register(parsed.data);
+  let result;
+  try {
+    result = await service.register(parsed.data);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Registration failed';
+    if (message === 'ORG_JOIN_REQUIRES_INVITE_OR_VERIFIED_DOMAIN') {
+      return c.json(
+        { error: { code: 'ORG_JOIN_REQUIRES_INVITE_OR_VERIFIED_DOMAIN', message: 'Joining an existing organization requires a valid invite code or a verified email domain', request_id: c.get('requestId') as string } },
+        403
+      );
+    }
+    if (message === 'Invalid or expired invite code') {
+      return c.json(
+        { error: { code: 'INVALID_INVITE_CODE', message: message, request_id: c.get('requestId') as string } },
+        400
+      );
+    }
+    throw err;
+  }
 
   const { accessToken, refreshToken } = await service.issueSession(result.user.id, result.user.organization_id, result.user.role);
 

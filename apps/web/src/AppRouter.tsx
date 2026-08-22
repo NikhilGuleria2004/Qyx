@@ -32,16 +32,16 @@ function AdminScreenWrapper({ component: Component }: { component: React.Compone
 }
 
 const ADMIN_SCREEN_MAP: Record<string, React.ComponentType<AdminScreenProps>> = {
-  '/admin/members': MembersScreen,
-  '/admin/groups': GroupsScreen,
-  '/admin/channels': ChannelsScreen,
-  '/admin/requests': RequestsScreen,
-  '/admin/settings': OrgSettingsScreen,
-  '/admin/security': SecurityCenterScreen,
-  '/admin/audit': AuditLogScreen,
-  '/admin/devices': DevicesScreen,
-  '/admin/sso': SSOScreen,
-  '/admin/alerts': AlertsScreen,
+  members: MembersScreen,
+  groups: GroupsScreen,
+  channels: ChannelsScreen,
+  requests: RequestsScreen,
+  settings: OrgSettingsScreen,
+  security: SecurityCenterScreen,
+  audit: AuditLogScreen,
+  devices: DevicesScreen,
+  sso: SSOScreen,
+  alerts: AlertsScreen,
 };
 
 export default function AppRouter() {
@@ -59,22 +59,17 @@ export default function AppRouter() {
 
         <Route element={<RequireBucket bucket="superadmin"><SuperAdminLayout /></RequireBucket>}>
           <Route path="/superadmin" element={<SuperAdminHome />} />
-          {ADMIN_NAV_ITEMS.map((item) => {
-            const superAdminPath = item.path.replace('/admin', '/superadmin');
-            const ScreenComponent = ADMIN_SCREEN_MAP[item.path];
-            if (!ScreenComponent) return null;
-            return (
-              <Route key={superAdminPath} path={superAdminPath} element={<AdminScreenWrapper component={ScreenComponent} />} />
-            );
-          })}
+          {ADMIN_NAV_ITEMS.map((item) => (
+            <Route key={item.segment} path={`/superadmin/${item.segment}`} element={<AdminScreenWrapper component={ADMIN_SCREEN_MAP[item.segment]} />} />
+          ))}
         </Route>
 
         <Route element={<RequireBucket bucket="admin"><AdminLayout /></RequireBucket>}>
           <Route path="/admin" element={<AdminHome />} />
           {ADMIN_NAV_ITEMS.map((item) => (
-            <Route key={item.path} path={item.path.replace('/admin', '')} element={
+            <Route key={item.segment} path={item.segment} element={
               <RequirePermission permission={item.permission}>
-                <AdminScreenWrapper component={ADMIN_SCREEN_MAP[item.path]} />
+                <AdminScreenWrapper component={ADMIN_SCREEN_MAP[item.segment]} />
               </RequirePermission>
             } />
           ))}

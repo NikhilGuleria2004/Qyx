@@ -1,7 +1,7 @@
 import { D1Database } from '@cloudflare/workers-types';
 import { getUserByEmail, createUser as dbCreateUser } from '../../db/queries/users';
 import { getOrganizationByName, createOrganization as dbCreateOrganization } from '../../db/queries/organizations';
-import { createDomain as dbCreateDomain } from '../../db/queries/domains';
+import { createDomain as dbCreateDomain, listDomainsByOrg } from '../../db/queries/domains';
 import { InviteService } from '../invites/invite.service';
 import { hashPassword, verifyPassword } from './password';
 import { generateTOTPSecret, verifyTOTP } from './totp';
@@ -29,6 +29,10 @@ export class AuthService {
     } else {
       const existingOrg = await getOrganizationByName(this.db, data.organization_name);
       if (existingOrg) {
+        const canJoin = await this.canJoinExistingOrg(existingOrg.id as string, data.email, data.invite_code);
+        if (!canJoin) {
+          throw new Error('ORG_JOIN_REQUIRES_INVITE_OR_VERIFIED_DOMAIN');
+        }
         organizationId = existingOrg.id as string;
       } else {
         organizationId = `org_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
@@ -56,6 +60,27 @@ export class AuthService {
       user: user as unknown as User,
       orgCreated,
     };
+  }
+
+  private async canJoinExistingOrg(orgId: string, email: string, inviteCode?: string): Promise<boolean> {
+    if (inviteCode) {
+      const inviteService = new InviteService(this.db);
+      const invite = await inviteService.getInviteByCode(inviteCode.trim().toUpperCase());
+      if (invite && invite.organization_id === orgId && invite.status === 'pending' && invite.expires_at >= Date.now()) {
+        await inviteService.acceptInvite(invite.organization_id, invite.id);
+        return true;
+      }
+    }
+
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    if (!emailDomain) return false;
+
+    const domains = await listDomainsByOrg(this.db, orgId);
+    const verifiedDomains = (domains as Array<{ domain: string; verified: number }>)
+      .filter((d) => d.verified === 1)
+      .map((d) => d.domain.toLowerCase());
+
+    return verifiedDomains.includes(emailDomain);
   }
 
   async login(data: Login): Promise<{ state: LoginState; mfaSecret?: string }> {

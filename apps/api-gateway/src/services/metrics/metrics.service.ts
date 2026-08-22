@@ -80,6 +80,31 @@ export class MetricsService {
     return signals;
   }
 
+  async getPlatformMetrics(): Promise<{
+    total_organizations: number;
+    active_users: number;
+    pending_verifications: number;
+    failed_logins_24h: number;
+    pending_device_authorizations: number;
+  }> {
+    const totalOrgs = await this.db.prepare('SELECT COUNT(*) as count FROM organizations').first();
+    const activeUsers = await this.db.prepare("SELECT COUNT(*) as count FROM users WHERE status = ?").bind('active').first();
+    const pendingVerifications = await this.db.prepare("SELECT COUNT(*) as count FROM organizations WHERE status = ?").bind('pending_verification').first();
+    const windowStart = Date.now() - 24 * 60 * 60 * 1000;
+    const failedLogins = await this.db.prepare(
+      'SELECT COUNT(*) as count FROM metrics_events WHERE service = ? AND operation = ? AND status = ? AND created_at >= ?'
+    ).bind('identity', 'login', 'error', windowStart).first();
+    const pendingDevices = await this.db.prepare("SELECT COUNT(*) as count FROM devices WHERE status = ?").bind('pending').first();
+
+    return {
+      total_organizations: (totalOrgs as { count: number }).count || 0,
+      active_users: (activeUsers as { count: number }).count || 0,
+      pending_verifications: (pendingVerifications as { count: number }).count || 0,
+      failed_logins_24h: (failedLogins as { count: number }).count || 0,
+      pending_device_authorizations: (pendingDevices as { count: number }).count || 0,
+    };
+  }
+
   async getSecurityMetrics(orgId: string): Promise<SecurityMetrics> {
     const windowStart = Date.now() - 60 * 60 * 1000;
 

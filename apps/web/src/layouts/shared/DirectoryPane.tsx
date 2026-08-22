@@ -1,49 +1,107 @@
-import { useState } from 'react';
-import { ChevronRight, Users, Hash, MessageSquare, X, Settings, Shield, FileText, Monitor, KeyRound, Bell } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { ChevronRight, Users, Hash, MessageSquare, X, Settings } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
+import { listChannels, listGroups, listConversations, type Channel, type Group, type Conversation } from '../../features/app/api/directoryApi';
 import { InspectorContent } from './InspectorPane';
 
-function AdminNav({ userRole }: { userRole?: string }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const role = userRole || 'employee';
+export function DirectoryPane({ userRole: _userRole }: { userRole?: string }) {
+  const [open, setOpen] = useState(true);
+  const [mobileView, setMobileView] = useState<'directory' | 'buffer' | 'inspector'>('buffer');
+  const orgId = useAuthStore((s) => s.user?.orgId);
 
-  if (role !== 'super_admin' && role !== 'admin') return null;
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const items: { view: string; label: string; icon: React.ReactNode }[] = [
-    { view: '/admin/members', label: 'Members', icon: <Users size={12} className="mr-2" /> },
-    { view: '/admin/groups', label: 'Groups', icon: <Users size={12} className="mr-2" /> },
-    { view: '/admin/channels', label: 'Channels', icon: <Hash size={12} className="mr-2" /> },
-    { view: '/admin/requests', label: 'Requests', icon: <Shield size={12} className="mr-2" /> },
-    { view: '/admin/settings', label: 'Org Settings', icon: <Settings size={12} className="mr-2" /> },
-    { view: '/admin/security', label: 'Security Center', icon: <Shield size={12} className="mr-2" /> },
-    { view: '/admin/audit', label: 'Audit Log', icon: <FileText size={12} className="mr-2" /> },
-    { view: '/admin/devices', label: 'Devices', icon: <Monitor size={12} className="mr-2" /> },
-    { view: '/admin/sso', label: 'SSO', icon: <KeyRound size={12} className="mr-2" /> },
-    { view: '/admin/alerts', label: 'Alerts', icon: <Bell size={12} className="mr-2" /> },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchDirectory() {
+      try {
+        const [ch, gr, conv] = await Promise.all([
+          listChannels().catch(() => [] as Channel[]),
+          listGroups().catch(() => [] as Group[]),
+          listConversations().catch(() => [] as Conversation[]),
+        ]);
+        if (!cancelled) {
+          setChannels(ch);
+          setGroups(gr);
+          setConversations(conv.filter((c) => c.type === 'direct'));
+        }
+      } catch {
+        // silently fail — directory is non-critical
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchDirectory();
+    return () => { cancelled = true; };
+  }, []);
 
-  return (
-    <div className="mb-2">
-      <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-        <Shield size={12} className="mr-1" />
-        <span>Admin</span>
+  const renderDirectoryContent = () => (
+    <div className="flex-1 overflow-y-auto p-2">
+      <div className="mb-2">
+        <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
+          <ChevronRight size={12} className="mr-1" />
+          <span>{orgId || 'Organization'}</span>
+        </div>
+        <div className="ml-4 mt-1">
+          {loading ? (
+            <div className="px-2 py-1 text-xs text-text-dim">Loading channels...</div>
+          ) : channels.length === 0 ? (
+            <div className="px-2 py-1 text-xs text-text-dim">No channels</div>
+          ) : (
+            channels.map((ch) => (
+              <div key={ch.id} className="flex items-center px-2 py-1 text-xs text-text-dim">
+                <Hash size={12} className="mr-2" />
+                <span>{ch.name}</span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-      <div className="ml-4 mt-1 space-y-1">
-        {items.map((item) => (
-          <button key={item.view} onClick={() => navigate(item.view)} className={`flex items-center w-full px-2 py-1 text-xs ${location.pathname === item.view ? 'text-text-primary bg-raised' : 'text-text-dim hover:text-text-primary'}`}>
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
+      <div className="mb-2">
+        <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
+          <ChevronRight size={12} className="mr-1" />
+          <span>Groups</span>
+        </div>
+        <div className="ml-4 mt-1">
+          {loading ? (
+            <div className="px-2 py-1 text-xs text-text-dim">Loading groups...</div>
+          ) : groups.length === 0 ? (
+            <div className="px-2 py-1 text-xs text-text-dim">No groups</div>
+          ) : (
+            groups.map((g) => (
+              <div key={g.id} className="flex items-center px-2 py-1 text-xs text-text-dim">
+                <Users size={12} className="mr-2" />
+                <span>{g.name}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      <div>
+        <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
+          <ChevronRight size={12} className="mr-1" />
+          <span>Direct</span>
+        </div>
+        <div className="ml-4 mt-1">
+          {loading ? (
+            <div className="px-2 py-1 text-xs text-text-dim">Loading conversations...</div>
+          ) : conversations.length === 0 ? (
+            <div className="px-2 py-1 text-xs text-text-dim">No direct messages</div>
+          ) : (
+            conversations.map((c) => (
+              <div key={c.id} className="flex items-center px-2 py-1 text-xs text-text-dim">
+                <MessageSquare size={12} className="mr-2" />
+                <span>{c.id}</span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
-}
-
-export function DirectoryPane({ userRole }: { userRole?: string }) {
-  const [open, setOpen] = useState(true);
-  const [mobileView, setMobileView] = useState<'directory' | 'buffer' | 'inspector'>('buffer');
 
   return (
     <>
@@ -56,49 +114,7 @@ export function DirectoryPane({ userRole }: { userRole?: string }) {
                 <X size={14} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>ACME CORP</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Hash size={12} className="mr-2" />
-                    <span>general</span>
-                  </div>
-                  <div className="flex items-center px-2 py-1 text-xs text-text-primary bg-raised">
-                    <Hash size={12} className="mr-2" />
-                    <span>engineering</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Groups</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Users size={12} className="mr-2" />
-                    <span>Engineering Lead</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Direct</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <MessageSquare size={12} className="mr-2" />
-                    <span>sarah.w</span>
-                  </div>
-                </div>
-              </div>
-              <AdminNav userRole={userRole} />
-            </div>
+            {renderDirectoryContent()}
           </div>
         )}
         {!open && (
@@ -116,49 +132,7 @@ export function DirectoryPane({ userRole }: { userRole?: string }) {
                 <X size={14} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>ACME CORP</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Hash size={12} className="mr-2" />
-                    <span>general</span>
-                  </div>
-                  <div className="flex items-center px-2 py-1 text-xs text-text-primary bg-raised">
-                    <Hash size={12} className="mr-2" />
-                    <span>engineering</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-2">
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Groups</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <Users size={12} className="mr-2" />
-                    <span>Engineering Lead</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center px-2 py-1 text-xs font-medium text-text-secondary">
-                  <ChevronRight size={12} className="mr-1" />
-                  <span>Direct</span>
-                </div>
-                <div className="ml-4 mt-1">
-                  <div className="flex items-center px-2 py-1 text-xs text-text-dim">
-                    <MessageSquare size={12} className="mr-2" />
-                    <span>sarah.w</span>
-                  </div>
-                </div>
-              </div>
-              <AdminNav userRole={userRole} />
-            </div>
+            {renderDirectoryContent()}
           </div>
         )}
         {mobileView === 'inspector' && (

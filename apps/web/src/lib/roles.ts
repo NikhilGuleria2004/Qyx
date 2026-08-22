@@ -48,15 +48,15 @@ export function can(role: string | undefined | null, permission: string): boolea
   return perms.includes('*') || perms.includes(permission);
 }
 
-export const ADMIN_NAV_ITEMS: { path: string; label: string; permission: string }[] = [
-  { path: '/admin/members',  label: 'Members',        permission: 'members:read' },
-  { path: '/admin/groups',   label: 'Groups',          permission: 'groups:read' },
-  { path: '/admin/channels', label: 'Channels',        permission: 'channels:read' },
-  { path: '/admin/requests', label: 'Requests',        permission: 'org:read' },
-  { path: '/admin/settings', label: 'Org Settings',    permission: 'org:update' },
-  { path: '/admin/security', label: 'Security Center', permission: 'security:read' },
-  { path: '/admin/audit',    label: 'Audit Log',       permission: 'audit:read' },
-  { path: '/admin/devices',  label: 'Devices',         permission: 'devices:read' },
-  { path: '/admin/sso',      label: 'SSO',             permission: 'org:update' },
-  { path: '/admin/alerts',   label: 'Alerts',          permission: 'security:read' },
+export const ADMIN_NAV_ITEMS: { segment: string; label: string; permission: string }[] = [
+  { segment: 'members',  label: 'Members',        permission: 'members:read' },
+  { segment: 'groups',   label: 'Groups',          permission: 'groups:read' },
+  { segment: 'channels', label: 'Channels',        permission: 'channels:read' },
+  { segment: 'requests', label: 'Requests',        permission: 'org:read' },
+  { segment: 'settings', label: 'Org Settings',    permission: 'org:update' },
+  { segment: 'security', label: 'Security Center', permission: 'security:read' },
+  { segment: 'audit',    label: 'Audit Log',       permission: 'audit:read' },
+  { segment: 'devices',  label: 'Devices',         permission: 'devices:read' },
+  { segment: 'sso',      label: 'SSO',             permission: 'org:update' },
+  { segment: 'alerts',   label: 'Alerts',          permission: 'security:read' },
 ];

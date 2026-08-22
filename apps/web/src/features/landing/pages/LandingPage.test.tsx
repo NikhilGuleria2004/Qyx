@@ -15,7 +15,7 @@ describe('LandingPage', () => {
   it('renders product name and description', () => {
     const html = renderLanding();
     expect(html).toContain('qyx');
-    expect(html).toContain('Organization-centric communications platform');
+    expect(html).toContain('Private messaging, group collaboration, and controlled broadcast');
   });
 
   it('renders feature list', () => {
@@ -30,8 +30,8 @@ describe('LandingPage', () => {
 
   it('renders CTAs to register and login', () => {
     const html = renderLanding();
-    expect(html).toContain('Get started');
-    expect(html).toContain('Sign in');
+    expect(html).toContain('get started');
+    expect(html).toContain('sign in');
     expect(html).toContain('href="/register"');
     expect(html).toContain('href="/login"');
   });

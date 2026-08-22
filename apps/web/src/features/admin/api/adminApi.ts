@@ -163,12 +163,31 @@ export async function rejectChannelRequest(channelId: string, reqId: string, tok
   }, token);
 }
 
-export async function getSecuritySummary(orgId: string, token: string) {
+export async function getSecuritySummary(orgId: string, token: string): Promise<{
+  org_id: string;
+  mfa_adoption: { total: number; enabled: number; percentage: number };
+  device_verification: { total: number; active: number; pending: number; percentage: number };
+  suspended_accounts: number;
+  active_sessions: number;
+  unrecognized_devices: number;
+}> {
   return request(`/organizations/${orgId}/security-summary`, { method: 'GET' }, token);
 }
 
 export async function getMetrics(orgId: string, type: string, token: string) {
   return request(`/organizations/${orgId}/metrics?type=${type}`, { method: 'GET' }, token);
+}
+
+export async function getPlatformSummary(token: string): Promise<{
+  summary: {
+    total_organizations: number;
+    active_users: number;
+    pending_verifications: number;
+    failed_logins_24h: number;
+    pending_device_authorizations: number;
+  };
+}> {
+  return request('/organizations/platform-summary', { method: 'GET' }, token);
 }
 
 export async function listAuditEvents(orgId: string, options: { event_type?: string; actor_id?: string; cursor?: number; limit?: number } = {}, token: string) {
